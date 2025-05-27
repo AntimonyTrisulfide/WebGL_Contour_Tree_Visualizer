@@ -1,0 +1,131 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: rgba(25.6, 25.6, 25.6, 255);
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+.controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 100;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.parameterSlider {
+    width: 200px;
+    margin: 0 10px;
+}
+
+.parameterSliderLabel {
+    color: white;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.parameterSliderValue {
+    color: #4CAF50;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+.file-input-wrapper input[type=file] {
+    position: absolute;
+    left: -9999px;
+}
+
+.file-input-label {
+    background: #4CAF50;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    border: none;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.file-input-label:hover {
+    background: #45a049;
+}
+
+.reset-button {
+    background: #2196F3;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+.reset-button:hover {
+    background: #1976D2;
+}
+
+.instructions {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 12px;
+    max-width: 300px;
+    z-index: 100;
+}
+
+.instructions h3 {
+    margin: 0 0 10px 0;
+    color: #4CAF50;
+}
+
+.instructions ul {
+    margin: 5px 0;
+    padding-left: 15px;
+}
+
+.instructions li {
+    margin: 3px 0;
+}
+
+.status {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    color: white;
+    font-size: 14px;
+    z-index: 100;
+    display: none;
+}
+
+.status.success {
+    background: #4CAF50;
+}
+
+.status.info {
+    background: #2a6afe;
+}
+
+.status.error {
+    background: #f44336;
+}

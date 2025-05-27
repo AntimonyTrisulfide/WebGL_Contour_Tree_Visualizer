@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEBGL Starter</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <script src="script.js" defer></script>
+</head>
+<body>
+    <div class="controls">
+        <div class="file-input-wrapper" id = "fileInputWrapper">
+            <input type="file" id="fileInput" accept=".off">
+            <label for="fileInput" class="file-input-label">Load OFF File</label>
+        </div>
+        <div class="parameterSlider">
+            <label for="sphereRadiusLabel" class="parameterSliderLabel">Sphere Radius:</label>
+            <input type="range" id="sphereRadius" min="0.001" max="0.5" step="0.0001" value="0.2">
+        </div>
+        <div class="parameterSlider">
+            <label for="pipeRadiusLabel" class="parameterSliderLabel">Pipe Radius:</label>
+            <input type="range" id="pipeRadius" min="0.001" max="0.3" step="0.0001" value="0.1">
+        </div>
+        <!-- <button id="resetButton" class="reset-button">Reset View</button> -->
+    </div>
+    
+    <div class="instructions">
+        <h3>Controls:</h3>
+        <ul>
+            <li><strong>Mouse drag:</strong> Rotate camera</li>
+            <!-- <li><strong>Shift + Mouse Drag:</strong> Translate/pan view</li> -->
+            <li><strong>Mouse wheel:</strong> Zoom in/out</li>
+            <!-- <li><strong>Reset button (Ctrl):</strong> Return to center</li> -->
+        </ul>
+    </div>
+    <div id="status" class="status"></div>
+    <canvas id="canvas"></canvas>
+    <input type="file" id="fileInput" accept=".off" />
+    <script>
+        const _c = document.getElementsByTagName('canvas')[0];
+        _c.width = window.innerWidth;
+        _c.height = window.innerHeight;
+    </script>
+</body>
+</html>
