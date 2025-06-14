@@ -6,8 +6,7 @@
     <title>WEBGL Starter</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
-    <!-- <script src="test.js" defer></script> -->
-     <script src="script.js" defer></script>
+    <script src="script.js" defer></script>
 </head>
 <body>
     <div class="controls">
@@ -22,6 +21,10 @@
         <div class="parameterSlider">
             <label for="pipeRadiusLabel" class="parameterSliderLabel">Pipe Radius:</label>
             <input type="range" id="pipeRadius" min="0.001" max="0.3" step="0.0001" value="0.02">
+        </div>
+        <div id="edgeInputWrapper">
+            <label for="edgeSelect">Edge Number: </label>
+            <input type="number" id="edgeSelect" min="1" value="1">
         </div>
         <!-- <button id="resetButton" class="reset-button">Reset View</button> -->
     </div>
