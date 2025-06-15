@@ -95,12 +95,24 @@ canvas.addEventListener('wheel', (e) => {
 });
 
 window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    gl.viewport(0, 0, canvas.width, canvas.height);
+    // Supersampling for better anti-aliasing - render at device pixel ratio
+    const devicePixelRatio = window.devicePixelRatio || 1;
+    const displayWidth = window.innerWidth;
+    const displayHeight = window.innerHeight;
+    
+    canvas.width = displayWidth * devicePixelRatio;
+    canvas.height = displayHeight * devicePixelRatio;
+    
+    // Set CSS size to actual display size
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
+      gl.viewport(0, 0, canvas.width, canvas.height);
     mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
     renderGraph();
-}); 
+});
+
+// Trigger initial resize to set up canvas properly
+window.dispatchEvent(new Event('resize'));
 
 // Keyboard controls - Blender style navigation
 const keyState = {};

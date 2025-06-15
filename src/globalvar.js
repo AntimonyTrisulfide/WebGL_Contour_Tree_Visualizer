@@ -18,7 +18,13 @@ New Functionality (to add)
 // Global variables and Default Data
 
 const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
-const gl = canvas.getContext("webgl2");
+const gl = canvas.getContext("webgl2", { 
+    antialias: true,
+    alpha: false,
+    depth: true,
+    stencil: false,
+    premultipliedAlpha: false
+});
 if (!gl) {
     console.error("WebGL2 not supported");
 }
