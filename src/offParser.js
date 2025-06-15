@@ -321,7 +321,7 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
 
     const EPSILON = 1e-6; // Small threshold for floating-point comparisons
 
-    edges.forEach(edge => {
+    edges.forEach((edge, originalEdgeIndex) => {
         const startVertex = vertices[edge[0]];
         const endVertex = vertices[edge[1]];
         const startType = vertexTypes[edge[0]];
@@ -338,7 +338,8 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
             lShapedEdges.push({
                 start: startVertex,
                 end: endVertex,
-                type: isHorizontal ? 'horizontal' : 'vertical'
+                type: isHorizontal ? 'horizontal' : 'vertical',
+                originalEdgeIndex: originalEdgeIndex + 1 // Store 1-based original edge index
             });
             return; // Skip L-shaped processing for this edge
         }
@@ -387,20 +388,20 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
                 extremumVertex[0], // Move horizontally to extremum's X position
                 saddleVertex[1],  // Keep saddle's Y position (height)
                 extremumVertex[2] // Move horizontally to extremum's Z position
-            ];
-
-            // First segment: saddle to intermediate
+            ];            // First segment: saddle to intermediate
             lShapedEdges.push({
                 start: saddleVertex,
                 end: intermediatePoint,
-                type: 'horizontal'
+                type: 'horizontal',
+                originalEdgeIndex: originalEdgeIndex + 1 // Store 1-based original edge index
             });
 
             // Second segment: intermediate to extremum
             lShapedEdges.push({
                 start: intermediatePoint,
                 end: extremumVertex,
-                type: 'vertical'
+                type: 'vertical',
+                originalEdgeIndex: originalEdgeIndex + 1 // Store 1-based original edge index
             });
 
             intermediatePoints.push(intermediatePoint);
@@ -410,20 +411,20 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
                 saddleVertex[0],    // Keep saddle's X position
                 extremumVertex[1],  // Move vertically to extremum's Y position
                 saddleVertex[2]     // Keep saddle's Z position
-            ];
-
-            // First segment: saddle to vertical intermediate
+            ];            // First segment: saddle to vertical intermediate
             lShapedEdges.push({
                 start: saddleVertex,
                 end: verticalIntermediatePoint,
-                type: 'vertical'
+                type: 'vertical',
+                originalEdgeIndex: originalEdgeIndex + 1 // Store 1-based original edge index
             });
 
             // Second segment: vertical intermediate to extremum
             lShapedEdges.push({
                 start: verticalIntermediatePoint,
                 end: extremumVertex,
-                type: 'horizontal'
+                type: 'horizontal',
+                originalEdgeIndex: originalEdgeIndex + 1 // Store 1-based original edge index
             });
 
             intermediatePoints.push(verticalIntermediatePoint);

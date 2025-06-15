@@ -6,9 +6,8 @@ function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
     const lShapedEdges = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
     const pipeInstanceData = new Float32Array(lShapedEdges.length * 10); // 3+3+1+3 for start+end+radius+color
 
-    let offset = 0;
-    lShapedEdges.forEach((edge, index) => {
-        const originalEdgeIndex = Math.floor(index / 2) + 1; // L-shaped edges are paired
+    let offset = 0;    lShapedEdges.forEach((edge, index) => {
+        const originalEdgeIndex = edge.originalEdgeIndex; // Use the stored original edge index
         const isSelected = selectedEdge === originalEdgeIndex;
 
         pipeInstanceData.set(edge.start, offset);
