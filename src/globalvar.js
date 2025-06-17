@@ -34,7 +34,7 @@ let sphereRadius = 0.025; // Default radius of the spheres
 let pipeRadius = 0.005; // Default radius of the pipes
 
 const sphereColor = [0.8, 0.3, 0.3]; // Color of the spheres
-const pipeColor = [0.600, 0.900, 0.800]; // Color of the pipes
+const pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
 const backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
