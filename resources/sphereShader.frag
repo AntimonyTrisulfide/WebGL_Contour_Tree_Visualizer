@@ -11,11 +11,15 @@ in vec3 vCameraPos;
 
 out vec4 fragColor;
 
-void main() {
-    // Map texture coordinates to [-1, 1] range, centered at (0.5, 0.5)
+void main() {    // Map texture coordinates to [-1, 1] range, centered at (0.5, 0.5)
     vec2 uv = (vTexCoord - vec2(0.5)) * 2.0;
     float distFromCenter = length(uv);
+
+    if(distFromCenter > 1.0){
+        discard;
+    }
     
+    /*
     // Compute alpha for smooth anti-aliasing
     float edgeWidth = 0.05; // Width of the anti-aliasing transition (adjust as needed)
     float alpha = smoothstep(1.0, 1.0 - edgeWidth, distFromCenter);
@@ -24,7 +28,9 @@ void main() {
     if (alpha <= 0.0) {
         discard;
     }
-    
+    */
+
+    float alpha = 1.0;    
     // Calculate the Z coordinate for the sphere surface
     float z = sqrt(1.0 - distFromCenter * distFromCenter);
     
@@ -37,9 +43,7 @@ void main() {
     
     // Ambient
     float ambientStrength = 0.3;
-    vec3 ambient = ambientStrength * vInstanceColor;
-    
-    // Diffuse
+    vec3 ambient = ambientStrength * vInstanceColor;    // Diffuse
     float diff = max(dot(normal, lightDir), 0.0);
     vec3 diffuse = diff * vInstanceColor;
     

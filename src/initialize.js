@@ -1,11 +1,8 @@
 // src/initialize.js
 
-let sphereVAO, pipeVAO;
 let sphereProgram, pipeProgram;
 let sphereUniforms, pipeUniforms;
 let verticesCount, edgesCount;
-
-let sphereIndexCount, pipeIndexCount;
 
 
 // gl.enable(gl.DEPTH_TEST);
@@ -107,6 +104,8 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
     const pipeInstStartVertex = gl.getAttribLocation(pipeProgram, "a_instanceStart");
     const pipeInstEndVertex = gl.getAttribLocation(pipeProgram, "a_instanceEnd");
     const pipeInstColorLoc = gl.getAttribLocation(pipeProgram, "a_instanceColor");
+    const pipePrevCylEndLoc = gl.getAttribLocation(pipeProgram, "a_prevCylEnd");
+    const pipeNextCylStartLoc = gl.getAttribLocation(pipeProgram, "a_nextCylStart");
     
     return {
         sphere: {
@@ -121,7 +120,9 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
             pipeInstSizeLoc,
             pipeInstStartVertex,
             pipeInstEndVertex,
-            instColorLoc: pipeInstColorLoc
+            instColorLoc: pipeInstColorLoc,
+            pipePrevCylEndLoc,
+            pipeNextCylStartLoc
         }
     };
 }
@@ -171,19 +172,13 @@ async function initializeGraph(offData) {
             // vertices = vertices.map((vertex, i) => {
             //     return [vertex[0], vertexValues[i], vertex[2]]; // Use function value as Y coordinate
             // })
-        }
-
-        // Create geometries
+        }        // Create geometries
         const sphere = createSphereQuad(); // Create billboard quad for spheres
-        const cylinder = createCylinderQuad(); // Use quad instead
+        const cuboid = createCuboidGeometry(); // Use cuboid geometry for pipes
         sphereIndexCount = sphere.indices.length;
-        pipeIndexCount = cylinder.indices.length;
-
-
-        let instanceObjects = updateInstanceData(); // Create this new function
+        pipeIndexCount = cuboid.indices.length;        let instanceObjects = updateInstanceData(); // Create this new function
         let instanceData = instanceObjects.instanceData; // Sphere instance data
-        let pipeInstanceData = instanceObjects.pipeInstanceData; // Pipe instance data
-        let edgesCount = instanceObjects.edgeCount; // Number of edges for pipes
+        let pipeInstanceData = instanceObjects.pipeInstanceData; // Pipe instance datalet edgesCount = instanceObjects.edgeCount; // Number of edges for pipes
 
 
         // Count different status type points
@@ -222,10 +217,7 @@ async function initializeGraph(offData) {
                 uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
                 uColorLocation: gl.getUniformLocation(sphereProgram, "uColor"),
                 uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix")
-            };
-
-            gl.useProgram(pipeProgram);
-            pipeUniforms = {
+            };            gl.useProgram(pipeProgram);            pipeUniforms = {
                 uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
@@ -251,14 +243,12 @@ async function initializeGraph(offData) {
 
         
         // Clean up old VAOs if they exist
-        if (sphereVAO) gl.deleteVertexArray(sphereVAO);
-
-        sphereVAO = gl.createVertexArray();
+        if (sphereVAO) gl.deleteVertexArray(sphereVAO);        sphereVAO = gl.createVertexArray();
         gl.bindVertexArray(sphereVAO);
 
         const spherePositionBuffer = gl.createBuffer();
         const sphereTexCoordBuffer = gl.createBuffer();
-        const instanceBuffer = gl.createBuffer();
+        instanceBuffer = gl.createBuffer();
         const sphereIndexBuffer = gl.createBuffer();
 
         // Position buffer
@@ -273,11 +263,9 @@ async function initializeGraph(offData) {
         gl.bufferData(gl.ARRAY_BUFFER, sphere.texCoords, gl.STATIC_DRAW);
         gl.enableVertexAttribArray(attributes.sphere.texLoc);
         gl.vertexAttribPointer(attributes.sphere.texLoc, 2, gl.FLOAT, false, 0, 0);
-        gl.vertexAttribDivisor(attributes.sphere.texLoc, 0);
-
-        // Instance buffer (position + size)
+        gl.vertexAttribDivisor(attributes.sphere.texLoc, 0);        // Instance buffer (position + size)
         gl.bindBuffer(gl.ARRAY_BUFFER, instanceBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, instanceData, gl.DYNAMIC_DRAW);
 
         // Instance position attribute
         gl.enableVertexAttribArray(attributes.sphere.instPosLoc);
@@ -315,7 +303,7 @@ const pipeIndexBuffer = gl.createBuffer();
 
 // Position buffer
 gl.bindBuffer(gl.ARRAY_BUFFER, pipePositionBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, cylinder.positions, gl.STATIC_DRAW);
+gl.bufferData(gl.ARRAY_BUFFER, cuboid.positions, gl.STATIC_DRAW);
 gl.enableVertexAttribArray(attributes.pipe.pipePosLoc);
 gl.vertexAttribPointer(attributes.pipe.pipePosLoc, 3, gl.FLOAT, false, 0, 0);
 gl.vertexAttribDivisor(attributes.pipe.pipePosLoc, 0);
@@ -326,27 +314,37 @@ gl.bufferData(gl.ARRAY_BUFFER, pipeInstanceData, gl.STATIC_DRAW);
 
 // Instance start position
 gl.enableVertexAttribArray(attributes.pipe.pipeInstStartVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 40, 0);
+gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 64, 0);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstStartVertex, 1);
 
 // Instance end position
 gl.enableVertexAttribArray(attributes.pipe.pipeInstEndVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 40, 12);
+gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 64, 12);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstEndVertex, 1);
 
 // Instance radius
 gl.enableVertexAttribArray(attributes.pipe.pipeInstSizeLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 40, 24);
+gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 64, 24);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstSizeLoc, 1);
 
 // Instance color
 gl.enableVertexAttribArray(attributes.pipe.instColorLoc);
-gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 40, 28);
+gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 64, 28);
 gl.vertexAttribDivisor(attributes.pipe.instColorLoc, 1);
+
+// Previous cylinder end (junction data)
+gl.enableVertexAttribArray(attributes.pipe.pipePrevCylEndLoc);
+gl.vertexAttribPointer(attributes.pipe.pipePrevCylEndLoc, 3, gl.FLOAT, false, 64, 40);
+gl.vertexAttribDivisor(attributes.pipe.pipePrevCylEndLoc, 1);
+
+// Next cylinder start (junction data)
+gl.enableVertexAttribArray(attributes.pipe.pipeNextCylStartLoc);
+gl.vertexAttribPointer(attributes.pipe.pipeNextCylStartLoc, 3, gl.FLOAT, false, 64, 52);
+gl.vertexAttribDivisor(attributes.pipe.pipeNextCylStartLoc, 1);
 
 // Index buffer
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cylinder.indices, gl.STATIC_DRAW);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cuboid.indices, gl.STATIC_DRAW);
 
 gl.bindVertexArray(null);
 

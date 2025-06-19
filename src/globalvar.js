@@ -7,6 +7,7 @@
 Issues with the code:
     1. The Overlapping of Spheres and Cylinders is still present.
     2. Issues with anti-aliasing on the cylinders (jagged edges).
+    3. Spheres anti-aliasing causing weird white outline (Block 1 Data)
 
 New Functionality (to add)
     1. Add selection logic using mouse clicks to select edges and vertices.
@@ -19,7 +20,8 @@ New Functionality (to add)
 
 const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
 const gl = canvas.getContext("webgl2", { 
-    antialias: true,
+    // antialias: true,
+    antialias: false, // Disable antialiasing for now
     alpha: false,
     depth: true,
     stencil: false,
@@ -34,7 +36,7 @@ let sphereRadius = 0.025; // Default radius of the spheres
 let pipeRadius = 0.005; // Default radius of the pipes
 
 const sphereColor = [0.8, 0.3, 0.3]; // Color of the spheres
-const pipeColor = [0.600, 0.900, 0.800]; // Color of the pipes
+const pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
 const backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
@@ -70,6 +72,10 @@ mat4.identity(modelMatrix);
 
 gl.enable(gl.DEPTH_TEST);
 gl.depthFunc(gl.LEQUAL); // Already default, but explicitly set for clarity
+
+// Buffer variables
+let instanceBuffer, pipeInstanceBuffer, sphereVAO, pipeVAO;
+let sphereIndexCount, pipeIndexCount;
 
 
 

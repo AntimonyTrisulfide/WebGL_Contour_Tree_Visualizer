@@ -84,33 +84,59 @@ void main() {
       if (!hit) {
         discard;
     }
-      // === OVERLAPPING CYLINDER HANDLING FOR L-ELBOW ===
+    
+    // === 45-DEGREE ELBOW CUTTING ===
+    // Check if we're near an intermediate point (elbow joint) and apply 45-degree cuts
     vec3 worldHitPosTemp = cylCenter + cylToWorld * localHitPos;
     
-    // Simple approach: Apply depth bias based on cylinder orientation
-    vec3 cylDirection = normalize(vCylEnd - vCylStart);
-    float verticalness = abs(dot(cylDirection, vec3(0.0, 1.0, 0.0)));
-    
-    // Check if we're near connection points (potential overlap region)
+    // Check if start point is an intermediate point (close to any cylinder intersection)
     float distToStart = length(worldHitPosTemp - vCylStart);
     float distToEnd = length(worldHitPosTemp - vCylEnd);
     float cylRadius = vRadius;
-    float overlapThreshold = cylRadius * 1.5;
     
-    bool inOverlapRegion = (distToStart < overlapThreshold) || (distToEnd < overlapThreshold);
+    // Define the cutting region near elbow joints (within 2 * pipe radius of start/end)
+    float cuttingDistance = cylRadius * 2.0;
     
-    if (inOverlapRegion) {
-        // Simple depth bias for horizontal vs vertical pipes
-        if (verticalness < 0.7) { // More horizontal pipe (less than 45 degrees from horizontal)
-            // Apply small depth bias to push horizontal pipes slightly behind vertical ones
-            vec4 biasedWorldPos = vec4(worldHitPosTemp, 1.0);
-            biasedWorldPos.y -= cylRadius * 0.15; // Small downward bias
-            
-            vec4 modelBiasedPos = uModelMatrix * biasedWorldPos;
-            vec4 viewBiasedPos = uViewMatrix * modelBiasedPos;
-            vec4 clipBiasedPos = uProjectionMatrix * viewBiasedPos;
-            float ndcBiasedDepth = clipBiasedPos.z / clipBiasedPos.w;
-            gl_FragDepth = (ndcBiasedDepth + 1.0) * 0.5;
+    if (distToStart < cuttingDistance) {
+        // Near start point - check for 45-degree cut
+        vec3 cylDirection = normalize(vCylEnd - vCylStart);
+        
+        // Create 45-degree cutting plane
+        vec3 cutNormal = normalize(cylDirection + vec3(1.0, 0.0, 0.0)); // 45-degree angle
+        
+        // Adjust cut normal based on cylinder orientation for proper 45-degree cut
+        vec3 perpendicular = normalize(cross(cylDirection, vec3(0.0, 1.0, 0.0)));
+        if (length(perpendicular) < 0.1) {
+            perpendicular = normalize(cross(cylDirection, vec3(1.0, 0.0, 0.0)));
+        }
+        cutNormal = normalize(cylDirection + perpendicular);
+        
+        // Calculate distance from cutting plane
+        float cutDistance = dot(worldHitPosTemp - vCylStart, cutNormal);
+        
+        // Apply cut if fragment is on the "cut away" side
+        if (cutDistance < 0.0) {
+            discard;
+        }
+    }
+    
+    if (distToEnd < cuttingDistance) {
+        // Near end point - check for 45-degree cut (opposite direction)
+        vec3 cylDirection = normalize(vCylEnd - vCylStart);
+        
+        // Create 45-degree cutting plane (opposite direction from start)
+        vec3 perpendicular = normalize(cross(cylDirection, vec3(0.0, 1.0, 0.0)));
+        if (length(perpendicular) < 0.1) {
+            perpendicular = normalize(cross(cylDirection, vec3(1.0, 0.0, 0.0)));
+        }
+        vec3 cutNormal = normalize(-cylDirection + perpendicular);
+        
+        // Calculate distance from cutting plane
+        float cutDistance = dot(worldHitPosTemp - vCylEnd, cutNormal);
+        
+        // Apply cut if fragment is on the "cut away" side
+        if (cutDistance < 0.0) {
+            discard;
         }
     }
       // Transform hit position and normal to world space
