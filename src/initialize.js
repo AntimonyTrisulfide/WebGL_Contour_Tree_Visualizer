@@ -97,13 +97,13 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
     const texLoc = gl.getAttribLocation(sphereProgram, "aTexCoord");
     const instPosLoc = gl.getAttribLocation(sphereProgram, "a_instancePosition");
     const instSizeLoc = gl.getAttribLocation(sphereProgram, "a_instanceSize");
-    const instColorLoc = gl.getAttribLocation(sphereProgram, "a_instanceColor");
-
-    const pipePosLoc = gl.getAttribLocation(pipeProgram, "aPosition");
+    const instColorLoc = gl.getAttribLocation(sphereProgram, "a_instanceColor");    const pipePosLoc = gl.getAttribLocation(pipeProgram, "aPosition");
     const pipeInstSizeLoc = gl.getAttribLocation(pipeProgram, "a_instanceRadius");
     const pipeInstStartVertex = gl.getAttribLocation(pipeProgram, "a_instanceStart");
     const pipeInstEndVertex = gl.getAttribLocation(pipeProgram, "a_instanceEnd");
     const pipeInstColorLoc = gl.getAttribLocation(pipeProgram, "a_instanceColor");
+    const pipeJointPointLoc = gl.getAttribLocation(pipeProgram, "a_jointPoint");
+    const pipeCutNormalLoc = gl.getAttribLocation(pipeProgram, "a_cutPlaneNormal");
     const pipePrevCylEndLoc = gl.getAttribLocation(pipeProgram, "a_prevCylEnd");
     const pipeNextCylStartLoc = gl.getAttribLocation(pipeProgram, "a_nextCylStart");
     
@@ -114,15 +114,14 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
             instPosLoc,
             instSizeLoc,
             instColorLoc
-        },
-        pipe: {
+        },        pipe: {
             pipePosLoc,
             pipeInstSizeLoc,
             pipeInstStartVertex,
             pipeInstEndVertex,
             instColorLoc: pipeInstColorLoc,
-            pipePrevCylEndLoc,
-            pipeNextCylStartLoc
+            pipeJointPointLoc,
+            pipeCutNormalLoc
         }
     };
 }
@@ -332,15 +331,15 @@ gl.enableVertexAttribArray(attributes.pipe.instColorLoc);
 gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 64, 28);
 gl.vertexAttribDivisor(attributes.pipe.instColorLoc, 1);
 
-// Previous cylinder end (junction data)
-gl.enableVertexAttribArray(attributes.pipe.pipePrevCylEndLoc);
-gl.vertexAttribPointer(attributes.pipe.pipePrevCylEndLoc, 3, gl.FLOAT, false, 64, 40);
-gl.vertexAttribDivisor(attributes.pipe.pipePrevCylEndLoc, 1);
+// Joint point (L-joint cutting)
+gl.enableVertexAttribArray(attributes.pipe.pipeJointPointLoc);
+gl.vertexAttribPointer(attributes.pipe.pipeJointPointLoc, 3, gl.FLOAT, false, 64, 40);
+gl.vertexAttribDivisor(attributes.pipe.pipeJointPointLoc, 1);
 
-// Next cylinder start (junction data)
-gl.enableVertexAttribArray(attributes.pipe.pipeNextCylStartLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeNextCylStartLoc, 3, gl.FLOAT, false, 64, 52);
-gl.vertexAttribDivisor(attributes.pipe.pipeNextCylStartLoc, 1);
+// Cut plane normal (L-joint cutting)
+gl.enableVertexAttribArray(attributes.pipe.pipeCutNormalLoc);
+gl.vertexAttribPointer(attributes.pipe.pipeCutNormalLoc, 3, gl.FLOAT, false, 64, 52);
+gl.vertexAttribDivisor(attributes.pipe.pipeCutNormalLoc, 1);
 
 // Index buffer
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);
@@ -353,7 +352,7 @@ gl.bindVertexArray(null);
 
         // debugUniforms(); // Call the debugging function to check uniform locations
 
-        renderGraph();
+        renderGraphWithFPS();
 
     } catch (error) {
         if(offData !== ""){

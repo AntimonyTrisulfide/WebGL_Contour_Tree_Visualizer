@@ -77,6 +77,16 @@ gl.depthFunc(gl.LEQUAL); // Already default, but explicitly set for clarity
 let instanceBuffer, pipeInstanceBuffer, sphereVAO, pipeVAO;
 let sphereIndexCount, pipeIndexCount;
 
+// FPS Counter variables
+let fpsCounter = {
+    frameCount: 0,
+    lastTime: 0,
+    fps: 0,
+    fpsUpdateInterval: 1000, // Update FPS display every 1000ms (1 second)
+    lastFpsUpdate: 0
+};
+let isAnimating = false; // Track if we're in continuous rendering mode
+
 
 
 

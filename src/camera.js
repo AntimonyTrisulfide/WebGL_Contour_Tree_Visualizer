@@ -120,17 +120,16 @@ function handleCameraMovement() {
         if (applySpacing) {
             showStatus('Spacing applied to edges', 'info');
             //reset the camera offset
-            cameraOffset = [0, 0, 0]; // Reset camera offset when applying spacing
-        } else {
+            cameraOffset = [0, 0, 0]; // Reset camera offset when applying spacing        } else {
             showStatus('Spacing removed from edges', 'info');
             cameraOffset = [0, 0, 0]; // Reset camera offset when applying spacing
         }
         initializeGraph(offData);
-        renderGraph();
+        renderGraphWithFPS();
         return;
     }
     
     if (moved) {
-        renderGraph();
+        renderGraphWithFPS();
     }
 }

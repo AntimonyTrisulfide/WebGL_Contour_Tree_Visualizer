@@ -29,7 +29,7 @@ canvas {
 }
 
 .parameterSliderLabel {
-    color: white;
+    color: rgb(0, 0, 0);
     font-size: 14px;
     margin-right: 10px;
 }
@@ -53,7 +53,7 @@ canvas {
 
 .file-input-label {
     background: #4CAF50;
-    color: white;
+    color: rgb(0, 0, 0);
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
@@ -68,7 +68,7 @@ canvas {
 
 .reset-button {
     background: #2196F3;
-    color: white;
+    color: rgb(0, 0, 0);
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
@@ -85,7 +85,7 @@ canvas {
     position: absolute;
     top: 20px;
     right: 20px;
-    color: white;
+    color: rgb(0, 0, 0);
     padding: 15px;
     border-radius: 8px;
     font-size: 12px;
@@ -113,7 +113,7 @@ canvas {
     left: 20px;
     padding: 10px 20px;
     border-radius: 5px;
-    color: white;
+    color: rgb(0, 0, 0);
     font-size: 14px;
     z-index: 100;
     display: none;
@@ -129,4 +129,45 @@ canvas {
 
 .status.error {
     background: #f44336;
+}
+
+/* FPS Counter Styles */
+.fps-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fps-button {
+    background: #FF5722;
+    color: rgb(0, 0, 0);
+    padding: 8px 16px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.fps-button:hover {
+    background: #E64A19;
+}
+
+.fps-button.active {
+    background: #4CAF50;
+}
+
+.fps-button.active:hover {
+    background: #45a049;
+}
+
+.fps-display {
+    color: #4CAF50;
+    font-size: 14px;
+    font-weight: bold;
+    background: rgba(0, 0, 0, 0.7);
+    padding: 5px 10px;
+    border-radius: 3px;
+    min-width: 60px;
+    text-align: center;
 }

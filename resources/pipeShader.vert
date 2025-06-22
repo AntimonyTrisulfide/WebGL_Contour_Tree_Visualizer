@@ -4,8 +4,8 @@ in vec3 a_instanceStart;
 in vec3 a_instanceEnd;
 in float a_instanceRadius;
 in vec3 a_instanceColor;
-in vec3 a_prevCylEnd;
-in vec3 a_nextCylStart;
+in vec3 a_jointPoint;
+in vec3 a_cutPlaneNormal;
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
@@ -18,8 +18,8 @@ out vec3 vCameraPos;
 out vec3 vCylStart;
 out vec3 vCylEnd;
 out float vRadius;
-out vec3 vPrevCylEnd;
-out vec3 vNextCylStart;
+out vec3 vJointPoint;
+out vec3 vCutPlaneNormal;
 
 void main() {
     // Calculate cylinder properties
@@ -61,6 +61,6 @@ void main() {
     vCylStart = (uModelMatrix * vec4(cylStart, 1.0)).xyz;
     vCylEnd = (uModelMatrix * vec4(cylEnd, 1.0)).xyz;
     vRadius = a_instanceRadius;
-    vPrevCylEnd = (uModelMatrix * vec4(a_prevCylEnd, 1.0)).xyz;
-    vNextCylStart = (uModelMatrix * vec4(a_nextCylStart, 1.0)).xyz;
+    vJointPoint = (uModelMatrix * vec4(a_jointPoint, 1.0)).xyz;
+    vCutPlaneNormal = (uModelMatrix * vec4(a_cutPlaneNormal, 0.0)).xyz; // Normal vector, so w=0
 }

@@ -37,14 +37,14 @@ document.getElementById('fileInput').addEventListener('change', function () {
 document.getElementById('sphereRadius').addEventListener('input', function () {
     sphereRadius = parseFloat(this.value);
     initializeGraph(offData);
-    renderGraph(); // Re-render the graph with the new sphere radius
+    renderGraphWithFPS(); // Re-render the graph with the new sphere radius
     showStatus(`Sphere radius set to ${sphereRadius}`, 'info');
 });
 
 document.getElementById('pipeRadius').addEventListener('input', function () {
     pipeRadius = parseFloat(this.value);
     initializeGraph(offData);
-    renderGraph(); // Re-render the graph with the new sphere radius
+    renderGraphWithFPS(); // Re-render the graph with the new sphere radius
     showStatus(`Pipe radius set to ${pipeRadius}`, 'info');
 });
 
@@ -139,6 +139,33 @@ document.getElementById('edgeSelect').addEventListener('input', function () {
         showStatus(`Invalid edge number. Please enter a number between 1 and ${edges.length}`, 'error');
         initializeGraph(offData);
         renderGraph();
+    }
+});
+
+// FPS Toggle Button Handler
+document.getElementById('fpsToggleButton').addEventListener('click', function () {
+    const button = this;
+    
+    if (isAnimating) {
+        // Stop continuous rendering
+        stopContinuousRendering();
+        button.textContent = 'Start FPS Counter';
+        button.classList.remove('active');
+        
+        // Clear FPS display
+        const fpsElement = document.getElementById('fpsDisplay');
+        if (fpsElement) {
+            fpsElement.textContent = 'FPS: --';
+        }
+          // Render one final frame
+        renderGraphWithFPS();
+        showStatus('FPS counter stopped', 'info');
+    } else {
+        // Start continuous rendering
+        startContinuousRendering();
+        button.textContent = 'Stop FPS Counter';
+        button.classList.add('active');
+        showStatus('FPS counter started', 'success');
     }
 });
 

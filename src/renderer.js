@@ -67,70 +67,22 @@ function calculateJunctionData(lShapedEdges, index) {
 }
 function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
     const lShapedEdges = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
-    const pipeInstanceData = new Float32Array(lShapedEdges.length * 16); // Extended to include junction data: 3+3+1+3+3+3 for start+end+radius+color+prevEnd+nextStart
+    const pipeInstanceData = new Float32Array(lShapedEdges.length * 16); // Extended for joint data: start(3)+end(3)+radius(1)+color(3)+jointPoint(3)+cutNormal(3)
 
     let offset = 0;
     lShapedEdges.forEach((edge, index) => {
         const originalEdgeIndex = edge.originalEdgeIndex;
         const isSelected = selectedEdge === originalEdgeIndex;
         
-        // Calculate junction data for this segment
-        const junctionData = calculateJunctionData(lShapedEdges, index);        // Calculate extended start and end positions
-        let extendedStart = [...edge.start];
-        let extendedEnd = [...edge.end];
+        // Basic instance data
+        pipeInstanceData.set(edge.start, offset);                              // Start position (0-2)
+        pipeInstanceData.set(edge.end, offset + 3);                           // End position (3-5)
+        pipeInstanceData[offset + 6] = pipeRadius;                            // Radius (6)
+        pipeInstanceData.set(isSelected ? [1.0, 0.0, 1.0] : pipeColor, offset + 7); // Color (7-9)
         
-        // Calculate cylinder direction vector
-        const cylDir = [
-            edge.end[0] - edge.start[0],
-            edge.end[1] - edge.start[1],
-            edge.end[2] - edge.start[2]
-        ];
-        const cylLength = Math.sqrt(cylDir[0] * cylDir[0] + cylDir[1] * cylDir[1] + cylDir[2] * cylDir[2]);
-        
-        // Normalize direction vector
-        const cylDirNorm = [
-            cylDir[0] / cylLength,
-            cylDir[1] / cylLength,
-            cylDir[2] / cylLength
-        ];
-        
-        // Check if start point is an intermediate point (elbow joint)
-        const startIsIntermediate = intermediatePoints.some(point => 
-            Math.abs(point[0] - edge.start[0]) < 0.001 &&
-            Math.abs(point[1] - edge.start[1]) < 0.001 &&
-            Math.abs(point[2] - edge.start[2]) < 0.001
-        );
-        
-        // Check if end point is an intermediate point (elbow joint)
-        const endIsIntermediate = intermediatePoints.some(point => 
-            Math.abs(point[0] - edge.end[0]) < 0.001 &&
-            Math.abs(point[1] - edge.end[1]) < 0.001 &&
-            Math.abs(point[2] - edge.end[2]) < 0.001
-        );
-        
-        // Extend start point only if it's an intermediate point AND there's a previous connection
-        if (startIsIntermediate && junctionData.hasPrev) {
-            extendedStart[0] -= cylDirNorm[0] * pipeRadius;
-            extendedStart[1] -= cylDirNorm[1] * pipeRadius;
-            extendedStart[2] -= cylDirNorm[2] * pipeRadius;
-        }
-        
-        // Extend end point only if it's an intermediate point AND there's a next connection
-        if (endIsIntermediate && junctionData.hasNext) {
-            extendedEnd[0] += cylDirNorm[0] * pipeRadius;
-            extendedEnd[1] += cylDirNorm[1] * pipeRadius;
-            extendedEnd[2] += cylDirNorm[2] * pipeRadius;
-        }
-
-        // Basic pipe data with extended positions
-        pipeInstanceData.set(extendedStart, offset);                                 // 0-2: extended start position
-        pipeInstanceData.set(extendedEnd, offset + 3);                               // 3-5: extended end position  
-        pipeInstanceData[offset + 6] = pipeRadius;                                   // 6: radius
-        pipeInstanceData.set(isSelected ? [1.0, 0.0, 1.0] : pipeColor, offset + 7); // 7-9: color
-        
-        // Junction data for cutting (keep original intermediate points for connection logic)
-        pipeInstanceData.set(junctionData.prevCylEnd, offset + 10);                  // 10-12: previous cylinder end
-        pipeInstanceData.set(junctionData.nextCylStart, offset + 13);                // 13-15: next cylinder start
+        // Joint data for L-joint cutting
+        pipeInstanceData.set(edge.jointPoint || [0.0, 0.0, 0.0], offset + 10); // Joint point (10-12)
+        pipeInstanceData.set(edge.cutPlaneNormal || [0.0, 0.0, 0.0], offset + 13); // Cut plane normal (13-15)
         
         offset += 16;
     });
@@ -259,4 +211,60 @@ function renderGraph() {
         validVertices.length
     );
     gl.bindVertexArray(null);
+}
+
+// FPS Counter functions
+function updateFPS(currentTime) {
+    fpsCounter.frameCount++;
+    
+    if (currentTime - fpsCounter.lastFpsUpdate >= fpsCounter.fpsUpdateInterval) {
+        // Calculate FPS
+        const deltaTime = currentTime - fpsCounter.lastFpsUpdate;
+        fpsCounter.fps = Math.round((fpsCounter.frameCount * 1000) / deltaTime);
+        
+        // Update FPS display
+        const fpsElement = document.getElementById('fpsDisplay');
+        if (fpsElement) {
+            fpsElement.textContent = `FPS: ${fpsCounter.fps}`;
+        }
+        
+        // Reset counters
+        fpsCounter.frameCount = 0;
+        fpsCounter.lastFpsUpdate = currentTime;
+    }
+}
+
+function startContinuousRendering() {
+    if (!isAnimating) {
+        isAnimating = true;
+        fpsCounter.lastTime = performance.now();
+        fpsCounter.lastFpsUpdate = fpsCounter.lastTime;
+        renderLoop();
+    }
+}
+
+function stopContinuousRendering() {
+    isAnimating = false;
+}
+
+function renderLoop() {
+    if (!isAnimating) return;
+    
+    const currentTime = performance.now();
+    updateFPS(currentTime);
+    
+    renderGraph();
+    
+    requestAnimationFrame(renderLoop);
+}
+
+// Enhanced renderGraph function with FPS tracking
+function renderGraphWithFPS() {
+    if (isAnimating) {
+        // FPS is handled in renderLoop
+        renderGraph();
+    } else {
+        // Single frame render
+        renderGraph();
+    }
 }
