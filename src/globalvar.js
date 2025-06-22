@@ -7,6 +7,7 @@
 Issues with the code:
     1. The Overlapping of Spheres and Cylinders is still present.
     2. Issues with anti-aliasing on the cylinders (jagged edges).
+    3. Spheres anti-aliasing causing weird white outline (Block 1 Data)
 
 New Functionality (to add)
     1. Add selection logic using mouse clicks to select edges and vertices.
@@ -19,7 +20,8 @@ New Functionality (to add)
 
 const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
 const gl = canvas.getContext("webgl2", { 
-    antialias: true,
+    // antialias: true,
+    antialias: false, // Disable antialiasing for now
     alpha: false,
     depth: true,
     stencil: false,
@@ -70,6 +72,20 @@ mat4.identity(modelMatrix);
 
 gl.enable(gl.DEPTH_TEST);
 gl.depthFunc(gl.LEQUAL); // Already default, but explicitly set for clarity
+
+// Buffer variables
+let instanceBuffer, pipeInstanceBuffer, sphereVAO, pipeVAO;
+let sphereIndexCount, pipeIndexCount;
+
+// FPS Counter variables
+let fpsCounter = {
+    frameCount: 0,
+    lastTime: 0,
+    fps: 0,
+    fpsUpdateInterval: 1000, // Update FPS display every 1000ms (1 second)
+    lastFpsUpdate: 0
+};
+let isAnimating = false; // Track if we're in continuous rendering mode
 
 
 

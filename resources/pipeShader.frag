@@ -3,6 +3,9 @@ precision highp float;
 
 uniform vec3 uLightPos;
 uniform vec3 uLightColor;
+uniform mat4 uModelMatrix;
+uniform mat4 uViewMatrix;
+uniform mat4 uProjectionMatrix;
 
 in vec3 vCylStart;
 in vec3 vCylEnd;
@@ -10,140 +13,110 @@ in float vRadius;
 in vec3 vInstanceColor;
 in vec3 vCameraPos;
 in vec3 vWorldPos;
+in vec3 vJointPoint;
+in vec3 vCutPlaneNormal;
 
 out vec4 fragColor;
 
 void main() {
     // Cylinder properties
     vec3 cylDir = normalize(vCylEnd - vCylStart);
-    float cylHeight = length(vCylEnd - vCylStart) * 0.5;
-    vec3 cylCenter = (vCylStart + vCylEnd) * 0.5;
+    float cylLength = length(vCylEnd - vCylStart);
     
     // Ray setup
     vec3 rayOrigin = vCameraPos;
     vec3 rayDir = normalize(vWorldPos - vCameraPos);
     
-    // Local coordinate system
-    vec3 up = cylDir;
-    vec3 right;
-    if (abs(dot(up, vec3(0.0, 1.0, 0.0))) > 0.999) {
-        right = normalize(cross(vec3(1.0, 0.0, 0.0), up));
-    } else {
-        right = normalize(cross(vec3(0.0, 1.0, 0.0), up));
+    // Ray-cylinder intersection in world space
+    vec3 oc = rayOrigin - vCylStart;
+    vec3 proj_oc = oc - dot(oc, cylDir) * cylDir;
+    vec3 proj_ray = rayDir - dot(rayDir, cylDir) * cylDir;
+    
+    float a = dot(proj_ray, proj_ray);
+    float b = 2.0 * dot(proj_oc, proj_ray);
+    float c = dot(proj_oc, proj_oc) - vRadius * vRadius;
+    
+    float discriminant = b * b - 4.0 * a * c;
+    if (discriminant < 0.0) {
+        discard;
     }
-    vec3 forward = normalize(cross(up, right));
     
-    // World-to-cylinder transformation
-    mat3 worldToCyl = mat3(
-        right.x, up.x, forward.x,
-        right.y, up.y, forward.y,
-        right.z, up.z, forward.z
-    );
+    float sqrt_d = sqrt(discriminant);
+    float t1 = (-b - sqrt_d) / (2.0 * a);
+    float t2 = (-b + sqrt_d) / (2.0 * a);
+    float t = (t1 > 0.0) ? t1 : t2;
     
-    // Cylinder-to-world transformation
-    mat3 cylToWorld = mat3(
-        right.x, right.y, right.z,
-        up.x, up.y, up.z,
-        forward.x, forward.y, forward.z
-    );
-    
-    // Transform ray to local space
-    vec3 ro = worldToCyl * (rayOrigin - cylCenter);
-    vec3 rd = worldToCyl * rayDir;
-    
-    // Ray-cylinder intersection (side)
-    float A = rd.x * rd.x + rd.z * rd.z;
-    float B = 2.0 * (ro.x * rd.x + ro.z * rd.z);
-    float C = ro.x * ro.x + ro.z * ro.z - vRadius * vRadius;
-    float D = B * B - 4.0 * A * C;
-    
-    float t = 1e20;
-    vec3 localNormal;
-    vec3 localHitPos;
-    bool hit = false;
-    bool isCapHit = false;
-    
-    // Side surface intersection
-    if (D >= 0.0 && A > 0.001) {
-        float sqrtD = sqrt(D);
-        float t0 = (-B - sqrtD) / (2.0 * A);
-        float t1 = (-B + sqrtD) / (2.0 * A);
+    if (t <= 0.0) {
+        discard;
+    }    // Calculate intersection point
+    vec3 hitPoint = rayOrigin + t * rayDir;
+    float distAlongAxis = dot(hitPoint - vCylStart, cylDir);
+
+    // Simple bounds check - no extensions, just the cylinder as defined
+    if (distAlongAxis < 0.0 || distAlongAxis > cylLength) {
+        discard;
+    }
+      // Calculate basic cylinder normal
+    vec3 axisPoint = vCylStart + distAlongAxis * cylDir;
+    vec3 toAxis = hitPoint - axisPoint;
+    vec3 cylinderNormal = normalize(toAxis);    // === L-JOINT CUTTING: 45-degree beveled cut ===
+    if (length(vJointPoint) > 0.001 && length(vCutPlaneNormal) > 0.001) {
+        // Vector from joint point to hit point
+        vec3 toHitPoint = hitPoint - vJointPoint;
         
-        for (int i = 0; i < 2; ++i) {
-            float tt = i == 0 ? t0 : t1;
-            vec3 p = ro + rd * tt;
-            if (tt > 0.0 && abs(p.y) <= cylHeight && tt < t) {
-                t = tt;
-                localHitPos = p;
-                localNormal = normalize(vec3(p.x, 0.0, p.z));
-                hit = true;
+        // Use the pre-calculated cut plane normal from CPU
+        vec3 cutPlaneNormal = normalize(vCutPlaneNormal);
+        
+        // Calculate distance from the cutting plane
+        float planeDistance = dot(toHitPoint, cutPlaneNormal);
+        
+        // Determine cylinder orientation
+        vec3 cylDirAbs = abs(cylDir);
+        bool isVertical = cylDirAbs.y > max(cylDirAbs.x, cylDirAbs.z);
+        
+        if (isVertical) {
+            // For vertical cylinders: 
+            // - Upward (positive Y direction): reject fragments before cutting plane
+            // - Downward (negative Y direction): reject fragments after cutting plane
+            float cylDirY = cylDir.y;
+            
+            if (cylDirY > 0.0) {
+                // Vertical upward: reject fragments before the cutting plane
+                if (planeDistance > 0.0) {
+                    discard;
+                }
+            } else {
+                // Vertical downward: reject fragments after the cutting plane
+                if (planeDistance < 0.0) {
+                    discard;
+                }
+            }
+        } else {
+            // For horizontal cylinders: always reject fragments after the cutting plane
+            // This creates the 45-degree cut at the joint
+            if (planeDistance > 0.0) {
+                discard;
             }
         }
     }
+
+
+    // === DEPTH CALCULATION ===
+    vec4 clipPos = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(hitPoint, 1.0);
+    float ndcDepth = clipPos.z / clipPos.w;
+    gl_FragDepth = (ndcDepth + 1.0) * 0.5;
     
-    // Caps intersection
-    for (int i = -1; i <= 1; i += 2) {
-        if (abs(rd.y) > 0.001) {
-            float capY = float(i) * cylHeight;
-            float tt = (capY - ro.y) / rd.y;
-            vec3 p = ro + rd * tt;
-            if (tt > 0.0 && (p.x * p.x + p.z * p.z) <= vRadius * vRadius && tt < t) {
-                t = tt;
-                localHitPos = p;
-                localNormal = vec3(0.0, float(i), 0.0);
-                hit = true;
-                isCapHit = true;
-            }
-        }
-    }
+    // === LIGHTING (ProteinVis style) ===
+    vec3 lightDir = normalize(uLightPos - hitPoint);
+    vec3 viewDir = normalize(vCameraPos - hitPoint);
+    vec3 halfVector = normalize(lightDir + viewDir);
     
-    if (!hit) {
-        discard;
-    }
+    // Blinn-Phong lighting with ProteinVis parameters
+    float diffuse = max(0.0, dot(cylinderNormal, lightDir));
+    float specular = pow(max(0.0, dot(cylinderNormal, halfVector)), 64.0);
     
-    // Transform hit position and normal to world space
-    vec3 worldHitPos = cylCenter + cylToWorld * localHitPos;
-    vec3 worldNormal = normalize(cylToWorld * localNormal);
+    // ProteinVis lighting formula: ambient(0.4) + diffuse(0.6) + specular(0.3)
+    vec3 finalColor = vInstanceColor * (0.4 + 0.6 * diffuse) + vec3(1.0, 1.0, 1.0) * 0.3 * specular;
     
-    // Compute anti-aliasing alpha
-    float alpha = 1.0;
-    float edgeWidth = 0.005; // Adjust this value (try 0.002 to 0.01) for a tighter transition
-    if (isCapHit) {
-        float radialDist = sqrt(localHitPos.x * localHitPos.x + localHitPos.z * localHitPos.z);
-        float edgeDistance = abs(radialDist - vRadius);
-        alpha = smoothstep(edgeWidth, 0.0, edgeDistance);
-    } else {
-        float radialDist = sqrt(localHitPos.x * localHitPos.x + localHitPos.z * localHitPos.z);
-        float edgeDistance = abs(radialDist - vRadius);
-        alpha = smoothstep(edgeWidth, 0.0, edgeDistance);
-    }
-    
-    // Early exit for fully transparent fragments
-    if (alpha <= 0.0) {
-        discard;
-    }
-    
-    // Lighting calculations (unchanged)
-    vec3 lightDir = normalize(uLightPos - worldHitPos);
-    vec3 viewDir = normalize(vCameraPos - worldHitPos);
-    vec3 halfDir = normalize(lightDir + viewDir);
-    
-    // Ambient
-    float ambientStrength = 0.3;
-    vec3 ambient = ambientStrength * vInstanceColor;
-    
-    // Diffuse
-    float diff = max(dot(worldNormal, lightDir), 0.0);
-    vec3 diffuse = diff * vInstanceColor;
-    
-    // Specular
-    float specularStrength = 0.8;
-    float spec = pow(max(dot(worldNormal, halfDir), 0.0), 32.0);
-    vec3 specular = specularStrength * spec * uLightColor;
-    
-    // Combine lighting
-    vec3 result = ambient + diffuse + specular;
-    
-    // Apply anti-aliased alpha
-    fragColor = vec4(result, alpha);
+    fragColor = vec4(finalColor, 1.0);
 }

@@ -1,20 +1,90 @@
 // src/renderer.js
 
-// Updated pipe instance data preparation
-// Modify the prepareLShapedPipeData function
+function calculateJunctionData(lShapedEdges, index) {
+    const currentEdge = lShapedEdges[index];
+    const originalEdgeIndex = currentEdge.originalEdgeIndex;
+    
+    // Find previous and next segments
+    let prevCylEnd = null;
+    let nextCylStart = null;
+    let hasPrev = false;
+    let hasNext = false;
+    
+    // Look for previous segment (same original edge, but earlier in sequence)
+    for (let i = index - 1; i >= 0; i--) {
+        if (lShapedEdges[i].originalEdgeIndex === originalEdgeIndex) {
+            prevCylEnd = lShapedEdges[i].end;
+            hasPrev = true;
+            break;
+        }
+    }
+    
+    // If no previous segment in same edge, look for connecting edge
+    if (!hasPrev) {
+        for (let i = 0; i < lShapedEdges.length; i++) {
+            if (i !== index && lShapedEdges[i].originalEdgeIndex !== originalEdgeIndex) {
+                // Check if this edge connects to current edge's start
+                const distance = vec3.distance(lShapedEdges[i].end, currentEdge.start);
+                if (distance < 0.001) { // Small threshold for connection
+                    prevCylEnd = lShapedEdges[i].end;
+                    hasPrev = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    // Look for next segment (same original edge, but later in sequence)
+    for (let i = index + 1; i < lShapedEdges.length; i++) {
+        if (lShapedEdges[i].originalEdgeIndex === originalEdgeIndex) {
+            nextCylStart = lShapedEdges[i].start;
+            hasNext = true;
+            break;
+        }
+    }
+    
+    // If no next segment in same edge, look for connecting edge
+    if (!hasNext) {
+        for (let i = 0; i < lShapedEdges.length; i++) {
+            if (i !== index && lShapedEdges[i].originalEdgeIndex !== originalEdgeIndex) {
+                // Check if this edge connects to current edge's end
+                const distance = vec3.distance(currentEdge.end, lShapedEdges[i].start);
+                if (distance < 0.001) { // Small threshold for connection
+                    nextCylStart = lShapedEdges[i].start;
+                    hasNext = true;
+                    break;
+                }
+            }
+        }
+    }
+    
+    return {
+        prevCylEnd: prevCylEnd || [0, 0, 0],
+        nextCylStart: nextCylStart || [0, 0, 0],
+        hasPrev: hasPrev,
+        hasNext: hasNext
+    };
+}
 function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
     const lShapedEdges = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
-    const pipeInstanceData = new Float32Array(lShapedEdges.length * 10); // 3+3+1+3 for start+end+radius+color
+    const pipeInstanceData = new Float32Array(lShapedEdges.length * 16); // Extended for joint data: start(3)+end(3)+radius(1)+color(3)+jointPoint(3)+cutNormal(3)
 
-    let offset = 0;    lShapedEdges.forEach((edge, index) => {
-        const originalEdgeIndex = edge.originalEdgeIndex; // Use the stored original edge index
+    let offset = 0;
+    lShapedEdges.forEach((edge, index) => {
+        const originalEdgeIndex = edge.originalEdgeIndex;
         const isSelected = selectedEdge === originalEdgeIndex;
-
-        pipeInstanceData.set(edge.start, offset);
-        pipeInstanceData.set(edge.end, offset + 3);
-        pipeInstanceData[offset + 6] = pipeRadius;
-        pipeInstanceData.set(isSelected ? [1.0, 0.0, 1.0] : pipeColor, offset + 7);
-        offset += 10;
+        
+        // Basic instance data
+        pipeInstanceData.set(edge.start, offset);                              // Start position (0-2)
+        pipeInstanceData.set(edge.end, offset + 3);                           // End position (3-5)
+        pipeInstanceData[offset + 6] = pipeRadius;                            // Radius (6)
+        pipeInstanceData.set(isSelected ? [1.0, 0.0, 1.0] : pipeColor, offset + 7); // Color (7-9)
+        
+        // Joint data for L-joint cutting
+        pipeInstanceData.set(edge.jointPoint || [0.0, 0.0, 0.0], offset + 10); // Joint point (10-12)
+        pipeInstanceData.set(edge.cutPlaneNormal || [0.0, 0.0, 0.0], offset + 13); // Cut plane normal (13-15)
+        
+        offset += 16;
     });
 
     return { pipeInstanceData, edgeCount: lShapedEdges.length };
@@ -22,9 +92,7 @@ function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
 
 function updateInstanceData() {
     // Instance data to be moved here
-    // Return the instance data for spheres and pipes
-
-    // Create L-shaped pipe connections
+    // Return the instance data for spheres and pipes    // Create L-shaped pipe connections
     const pipeData = prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues);
     const pipeInstanceData = pipeData.pipeInstanceData;
     edgesCount = pipeData.edgeCount;
@@ -48,6 +116,7 @@ function updateInstanceData() {
         instanceData[i * 7 + 3] = sphereRadius; // size if its not a intermediate point
         if (type === NODE_TYPES.INTERMEDIATE) {
             instanceData[i * 7 + 3] = pipeRadius*2; // Use pipe radius for intermediate points
+            // instanceData[i * 7 + 3] = sphereRadius * 2; // Use sphere radius for intermediate points
         }
         instanceData[i * 7 + 4] = color[0];   // r
         instanceData[i * 7 + 5] = color[1];   // g
@@ -57,9 +126,7 @@ function updateInstanceData() {
             instanceData[i * 7 + 5] = pipeColor[1];   // g for intermediate points
             instanceData[i * 7 + 6] = pipeColor[2];   // b for intermediate points
         }
-    });
-
-    return {
+    });    return {
         instanceData, // Sphere instance data
         pipeInstanceData, // Pipe instance data
         edgeCount: edgesCount // Number of edges for pipes
@@ -81,8 +148,7 @@ function renderGraph() {
 
     mat4.lookAt(viewMatrix, eye, target, up);
     invViewMatrix = mat4.invert(mat4.create(), viewMatrix);
-
-    // Render pipes first
+    
     gl.useProgram(pipeProgram);
     if (pipeUniforms.uProjectionMatrix) {
         gl.uniformMatrix4fv(pipeUniforms.uProjectionMatrix, false, projectionMatrix);
@@ -100,7 +166,7 @@ function renderGraph() {
         gl.uniform3fv(pipeUniforms.uLightColor, lightColor);
     }
     if (pipeUniforms.uCameraPos) {
-        gl.uniform3fv(pipeUniforms.uCameraPos, eye);
+        gl.uniform3fv(pipeUniforms.uCameraPos, eye);    
     }
 
     gl.bindVertexArray(pipeVAO);
@@ -109,8 +175,7 @@ function renderGraph() {
         pipeIndexCount,
         gl.UNSIGNED_SHORT,
         0,
-        edgesCount
-    );
+        edgesCount    );
     gl.bindVertexArray(null);
 
     // Render spheres second (no polygon offset needed)
@@ -146,4 +211,60 @@ function renderGraph() {
         validVertices.length
     );
     gl.bindVertexArray(null);
+}
+
+// FPS Counter functions
+function updateFPS(currentTime) {
+    fpsCounter.frameCount++;
+    
+    if (currentTime - fpsCounter.lastFpsUpdate >= fpsCounter.fpsUpdateInterval) {
+        // Calculate FPS
+        const deltaTime = currentTime - fpsCounter.lastFpsUpdate;
+        fpsCounter.fps = Math.round((fpsCounter.frameCount * 1000) / deltaTime);
+        
+        // Update FPS display
+        const fpsElement = document.getElementById('fpsDisplay');
+        if (fpsElement) {
+            fpsElement.textContent = `FPS: ${fpsCounter.fps}`;
+        }
+        
+        // Reset counters
+        fpsCounter.frameCount = 0;
+        fpsCounter.lastFpsUpdate = currentTime;
+    }
+}
+
+function startContinuousRendering() {
+    if (!isAnimating) {
+        isAnimating = true;
+        fpsCounter.lastTime = performance.now();
+        fpsCounter.lastFpsUpdate = fpsCounter.lastTime;
+        renderLoop();
+    }
+}
+
+function stopContinuousRendering() {
+    isAnimating = false;
+}
+
+function renderLoop() {
+    if (!isAnimating) return;
+    
+    const currentTime = performance.now();
+    updateFPS(currentTime);
+    
+    renderGraph();
+    
+    requestAnimationFrame(renderLoop);
+}
+
+// Enhanced renderGraph function with FPS tracking
+function renderGraphWithFPS() {
+    if (isAnimating) {
+        // FPS is handled in renderLoop
+        renderGraph();
+    } else {
+        // Single frame render
+        renderGraph();
+    }
 }

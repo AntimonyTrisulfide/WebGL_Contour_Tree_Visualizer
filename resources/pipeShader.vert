@@ -4,53 +4,63 @@ in vec3 a_instanceStart;
 in vec3 a_instanceEnd;
 in float a_instanceRadius;
 in vec3 a_instanceColor;
+in vec3 a_jointPoint;
+in vec3 a_cutPlaneNormal;
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec3 uCameraPos;
 
+out vec3 vWorldPos;
+out vec3 vInstanceColor;
+out vec3 vCameraPos;
 out vec3 vCylStart;
 out vec3 vCylEnd;
 out float vRadius;
-out vec3 vInstanceColor;
-out vec3 vCameraPos;
-out vec3 vWorldPos;
-out vec3 vRight;
-out vec3 vUp;
+out vec3 vJointPoint;
+out vec3 vCutPlaneNormal;
 
 void main() {
-    vec4 worldStart = uModelMatrix * vec4(a_instanceStart, 1.0);
-    vec4 worldEnd = uModelMatrix * vec4(a_instanceEnd, 1.0);
+    // Calculate cylinder properties
+    vec3 cylStart = a_instanceStart;
+    vec3 cylEnd = a_instanceEnd;
+    vec3 cylDir = normalize(cylEnd - cylStart);
+    float cylLength = length(cylEnd - cylStart);
+    vec3 cylCenter = (cylStart + cylEnd) * 0.5;
     
-    vec3 cylDir = normalize(worldEnd.xyz - worldStart.xyz);
-    float cylLength = length(worldEnd.xyz - worldStart.xyz) * 0.5;
-    vec3 cylCenter = (worldStart.xyz + worldEnd.xyz) * 0.5;
-    
-    // Billboard coordinate system
-    vec3 viewDir = normalize(uCameraPos - cylCenter);
-    
-    // Ensure up aligns with cylinder direction
+    // Create transformation matrix to orient cuboid along cylinder direction
     vec3 up = cylDir;
+    vec3 right;
     
-    // Compute right vector perpendicular to both viewDir and up
-    vec3 right = normalize(cross(viewDir, up));
+    // Choose a perpendicular vector
+    if (abs(dot(up, vec3(0.0, 1.0, 0.0))) > 0.9) {
+        right = normalize(cross(up, vec3(1.0, 0.0, 0.0)));
+    } else {
+        right = normalize(cross(up, vec3(0.0, 1.0, 0.0)));
+    }
+    vec3 forward = normalize(cross(up, right));
+      // Transformation matrix from local cuboid space to world space
+    mat3 transform = mat3(
+        right * a_instanceRadius * 2.0,     // X-axis (width)
+        up * cylLength,                      // Y-axis (length along cylinder)
+        forward * a_instanceRadius * 2.0     // Z-axis (depth)
+    );
     
-    // Scale quad: x for width (right), y for height (cylDir)
-    float widthScale = a_instanceRadius * 2.0; // Horizontal extent
-    float heightScale = cylLength * 1.2; // Vertical extent
-    vec3 localPos = (right * aPosition.x * widthScale) + (up * aPosition.y * heightScale);
-    
+    // Transform vertex position
+    vec3 localPos = transform * aPosition;
     vec3 worldPos = cylCenter + localPos;
-    vec4 viewPos = uViewMatrix * vec4(worldPos, 1.0);
-    gl_Position = uProjectionMatrix * viewPos;
     
-    vCylStart = worldStart.xyz;
-    vCylEnd = worldEnd.xyz;
-    vRadius = a_instanceRadius;
+    // Apply model, view, and projection transforms
+    vec4 viewPos = uViewMatrix * uModelMatrix * vec4(worldPos, 1.0);
+    gl_Position = uProjectionMatrix * viewPos;
+      // Pass to fragment shader
+    vWorldPos = (uModelMatrix * vec4(worldPos, 1.0)).xyz;
     vInstanceColor = a_instanceColor;
     vCameraPos = uCameraPos;
-    vWorldPos = worldPos;
-    vRight = right;
-    vUp = up;
+    vCylStart = (uModelMatrix * vec4(cylStart, 1.0)).xyz;
+    vCylEnd = (uModelMatrix * vec4(cylEnd, 1.0)).xyz;
+    vRadius = a_instanceRadius;
+    vJointPoint = (uModelMatrix * vec4(a_jointPoint, 1.0)).xyz;
+    vCutPlaneNormal = (uModelMatrix * vec4(a_cutPlaneNormal, 0.0)).xyz; // Normal vector, so w=0
 }

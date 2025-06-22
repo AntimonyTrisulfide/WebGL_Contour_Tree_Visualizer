@@ -16,6 +16,7 @@ out vec3 vCameraPos;
 out vec3 vWorldPos; // Pass world-space position
 out vec3 vInstanceColor;
 out vec3 vInstanceCenter; // Pass sphere center in world space
+out float vInstanceRadius; // Pass sphere radius
 
 void main() {
     // Compute world-space center of the sphere
@@ -30,10 +31,10 @@ void main() {
     vec4 worldPos = uInvViewMatrix * vec4(viewPos, 1.0);
     
     gl_Position = uProjectionMatrix * vec4(viewPos, 1.0);
-    
-    vTexCoord = aTexCoord;
+      vTexCoord = aTexCoord;
     vWorldPos = worldPos.xyz; // Pass world-space position
     vInstanceColor = a_instanceColor;
     vInstanceCenter = worldCenter.xyz; // Pass sphere center
     vCameraPos = uCameraPos;
+    vInstanceRadius = a_instanceSize; // Pass sphere radius
 }
