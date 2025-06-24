@@ -541,6 +541,13 @@ class MenuSystem {
             fileNameElement.textContent = fileName || 'No file loaded';
             fileNameElement.title = fileName || '';
         }
+        
+        // Update webpage title
+        if (fileName) {
+            document.title = `${fileName}`;
+        } else {
+            document.title = 'Contour Tree Visualizer';
+        }
     }
 }
 
