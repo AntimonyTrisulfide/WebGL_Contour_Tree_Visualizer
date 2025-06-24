@@ -35,15 +35,14 @@ if (!gl) {
 let sphereRadius = 0.025; // Default radius of the spheres
 let pipeRadius = 0.005; // Default radius of the pipes
 
-const sphereColor = [0.8, 0.3, 0.3]; // Color of the spheres
-const pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
+let pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
-const backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
+let backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
 
 // Light position
-const lightPosition = [10, 10, 10]; // Position of the light source in the scene
-const lightColor = [1.0, 1.0, 1.0]; // Color of the light source
+let lightPosition = [10, 10, 10]; // Position of the light source in the scene
+let lightColor = [1.0, 1.0, 1.0]; // Color of the light source
 
 // JS Object for point types (assgned each one a unique number)
 const NODE_TYPES = {
@@ -55,11 +54,11 @@ const NODE_TYPES = {
 };
 
 // Colors for each type
-const NODE_COLORS = {
+let NODE_COLORS = {
     [NODE_TYPES.MINIMUM]: [0.0, 0.4, 1.0],   // Blue
     [NODE_TYPES.SADDLE]: [0.0, 1.0, 1.0],    // Cyan
     [NODE_TYPES.MAXIMUM]: [1.0, 0.0, 0.0],    // Red
-    [NODE_TYPES.INTERMEDIATE]: [pipeColor[0], pipeColor[1], pipeColor[2]], // Use sphere color for intermediate points
+    [NODE_TYPES.INTERMEDIATE]: [0.8, 0.8, 0.8], // Default gray for intermediate points
 };
 
 

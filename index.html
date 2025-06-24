@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contour Tree Visualizer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Contour Tree Visualizer</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <script src="src/parameterManager.js"></script>
     <script src="src/globalvar.js" defer></script>
     <script src="src/offParser.js"></script>
     <script src="src/primitives.js"></script>
@@ -14,21 +14,14 @@
     <script src="src/renderer.js"></script>
     <script src="src/input.js" defer></script>
     <script src="src/debug.js"></script>
+    <script src="src/menu.js" defer></script>
 </head>
-<body>
-    <div class="controls">
+<body>    <div class="controls">
         <div class="file-input-wrapper" id = "fileInputWrapper">
             <input type="file" id="fileInput" accept=".off">
             <label for="fileInput" class="file-input-label">Load OFF File</label>
         </div>
-        <div class="parameterSlider">
-            <label for="sphereRadiusLabel" class="parameterSliderLabel">Sphere Radius:</label>
-            <input type="range" id="sphereRadius" min="0.001" max="0.5" step="0.0001" value="0.07">
-        </div>
-        <div class="parameterSlider">
-            <label for="pipeRadiusLabel" class="parameterSliderLabel">Pipe Radius:</label>
-            <input type="range" id="pipeRadius" min="0.001" max="0.3" step="0.0001" value="0.02">
-        </div>        <div id="edgeInputWrapper">
+        <div id="edgeInputWrapper">
             <label for="edgeSelect">Edge Number: </label>
             <input type="number" id="edgeSelect" min="1" value="1">
         </div>
@@ -36,7 +29,7 @@
             <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
             <div id="fpsDisplay" class="fps-display">FPS: --</div>
         </div>
-        <!-- <button id="resetButton" class="reset-button">Reset View</button> -->
+        <!-- Menu toggle will be added here by menu.js -->
     </div>
     
     <div class="instructions">
@@ -47,10 +40,8 @@
             <li><strong>Mouse wheel:</strong> Zoom in/out</li>
             <!-- <li><strong>Reset button (Ctrl):</strong> Return to center</li> -->
         </ul>
-    </div>
-    <div id="status" class="status"></div>
+    </div>    <div id="status" class="status"></div>
     <canvas id="canvas"></canvas>
-    <input type="file" id="fileInput" accept=".off" />
     <script>
         const _c = document.getElementsByTagName('canvas')[0];
         _c.width = window.innerWidth;

@@ -3,12 +3,13 @@
 
 // Variables
 let selectedEdge = null; // Track the selected edge number (1-based index) // Used by Renderer.js for highlighting
+let currentFileName = null; // Track the currently loaded file name
 
 // Flags and variables for storing mouse state
 let isDragging = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
-const mouseSensitivity = 0.005; // Sensitivity for mouse movement (FIXED for now, can be made adjustable later)
+let mouseSensitivity = 0.005; // Sensitivity for mouse movement (will be updated by parameter system)
 
 
 // File input handler
@@ -21,31 +22,21 @@ document.getElementById('fileInput').addEventListener('change', function () {
     if (!file.name.toLowerCase().endsWith('.off')) {
         showStatus('Please select a .off file', 'error');
         return;
-    }
-    
-    const reader = new FileReader();
+    }    const reader = new FileReader();
     reader.onload = function (e) {
         offData = e.target.result;
+        currentFileName = file.name; // Store the file name
         showStatus(`Loaded file: ${file.name}`, 'success');
         // change color of the button
         document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F'; // Green color for success
+        
+        // Update file name in sidebar if menu system is available
+        if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
+            menuSystem.updateCurrentFileName(file.name);
+        }
+        
         initializeGraph(offData);
-    };
-    reader.readAsText(file);
-});
-
-document.getElementById('sphereRadius').addEventListener('input', function () {
-    sphereRadius = parseFloat(this.value);
-    initializeGraph(offData);
-    renderGraphWithFPS(); // Re-render the graph with the new sphere radius
-    showStatus(`Sphere radius set to ${sphereRadius}`, 'info');
-});
-
-document.getElementById('pipeRadius').addEventListener('input', function () {
-    pipeRadius = parseFloat(this.value);
-    initializeGraph(offData);
-    renderGraphWithFPS(); // Re-render the graph with the new sphere radius
-    showStatus(`Pipe radius set to ${pipeRadius}`, 'info');
+    };reader.readAsText(file);
 });
 
 // Mouse controls
