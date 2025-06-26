@@ -533,13 +533,18 @@ class MenuSystem {
                 statusElement.style.display = 'none';
             }, 3000);
         }
-    }
-
-    updateCurrentFileName(fileName) {
+    }    updateCurrentFileName(fileName) {
         const fileNameElement = document.getElementById('current-file-name');
         if (fileNameElement) {
             fileNameElement.textContent = fileName || 'No file loaded';
             fileNameElement.title = fileName || '';
+        }
+        
+        // Update webpage title
+        if (fileName) {
+            document.title = `${fileName}`;
+        } else {
+            document.title = 'Contour Tree Visualizer';
         }
     }
 }

@@ -15,6 +15,7 @@ in vec3 vCameraPos;
 in vec3 vWorldPos;
 in vec3 vJointPoint;
 in vec3 vCutPlaneNormal;
+in float vJointType;
 
 out vec4 fragColor;
 
@@ -60,7 +61,13 @@ void main() {
     vec3 axisPoint = vCylStart + distAlongAxis * cylDir;
     vec3 toAxis = hitPoint - axisPoint;
     vec3 cylinderNormal = normalize(toAxis);    // === L-JOINT CUTTING: 45-degree beveled cut ===
-    if (length(vJointPoint) > 0.001 && length(vCutPlaneNormal) > 0.001) {
+    // This section creates clean 45° beveled cuts at L-joint intersections.
+    // Key insight: Using [0,1,0] bias for both up/down directions works because:
+    // 1. Cut plane gets consistent upward tilt from positive Y bias
+    // 2. Cylinder direction (cylDir) has opposite signs for up/down segments  
+    // 3. Joint type determines which side of plane to discard
+    // 4. These factors combine to produce correct beveled cuts for all orientations
+    if (length(vJointPoint) > 0.001 && length(vCutPlaneNormal) > 0.001 && vJointType > 0.5) {
         // Vector from joint point to hit point
         vec3 toHitPoint = hitPoint - vJointPoint;
         
@@ -74,28 +81,37 @@ void main() {
         vec3 cylDirAbs = abs(cylDir);
         bool isVertical = cylDirAbs.y > max(cylDirAbs.x, cylDirAbs.z);
         
+        // Joint type encoding: 1.0=horizontal-then-up, 2.0=horizontal-then-down, 
+        // 3.0=up-then-horizontal, 4.0=down-then-horizontal
+        float jointType = vJointType;
+        
         if (isVertical) {
-            // For vertical cylinders: 
-            // - Upward (positive Y direction): reject fragments before cutting plane
-            // - Downward (negative Y direction): reject fragments after cutting plane
+            // For vertical cylinders, discard based on joint type and cylinder direction
             float cylDirY = cylDir.y;
             
-            if (cylDirY > 0.0) {
-                // Vertical upward: reject fragments before the cutting plane
-                if (planeDistance > 0.0) {
+            if (jointType > 0.5 && jointType < 1.5 || jointType > 2.5 && jointType < 3.5) {
+                // Connections that go upward (1.0 or 3.0): reject fragments before cutting plane
+                if (planeDistance < 0.0) {
                     discard;
                 }
-            } else {
-                // Vertical downward: reject fragments after the cutting plane
-                if (planeDistance < 0.0) {
+            } else if (jointType > 1.5 && jointType < 2.5 || jointType > 3.5 && jointType < 4.5) {
+                // Connections that go downward (2.0 or 4.0): reject fragments after cutting plane
+                if (planeDistance > 0.0) {
                     discard;
                 }
             }
         } else {
-            // For horizontal cylinders: always reject fragments after the cutting plane
-            // This creates the 45-degree cut at the joint
-            if (planeDistance > 0.0) {
-                discard;
+            // For horizontal cylinders, discard based on joint type
+            if (jointType > 0.5 && jointType < 1.5 || jointType > 1.5 && jointType < 2.5) {
+                // horizontal-then-vertical patterns (1.0 or 2.0): reject fragments after cutting plane
+                if (planeDistance > 0.0) {
+                    discard;
+                }
+            } else if (jointType > 2.5 && jointType < 3.5 || jointType > 3.5 && jointType < 4.5) {
+                // vertical-then-horizontal patterns (3.0 or 4.0): reject fragments before cutting plane
+                if (planeDistance < 0.0) {
+                    discard;
+                }
             }
         }
     }

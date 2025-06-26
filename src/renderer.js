@@ -67,7 +67,7 @@ function calculateJunctionData(lShapedEdges, index) {
 }
 function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
     const lShapedEdges = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
-    const pipeInstanceData = new Float32Array(lShapedEdges.length * 16); // Extended for joint data: start(3)+end(3)+radius(1)+color(3)+jointPoint(3)+cutNormal(3)
+    const pipeInstanceData = new Float32Array(lShapedEdges.length * 17); // Extended for joint type: start(3)+end(3)+radius(1)+color(3)+jointPoint(3)+cutNormal(3)+jointType(1)
 
     let offset = 0;
     lShapedEdges.forEach((edge, index) => {
@@ -84,7 +84,22 @@ function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
         pipeInstanceData.set(edge.jointPoint || [0.0, 0.0, 0.0], offset + 10); // Joint point (10-12)
         pipeInstanceData.set(edge.cutPlaneNormal || [0.0, 0.0, 0.0], offset + 13); // Cut plane normal (13-15)
         
-        offset += 16;
+        // Joint type encoding for fragment shader L-joint cutting logic:
+        // 0.0=none, 1.0=horizontal-then-up, 2.0=horizontal-then-down, 
+        // 3.0=up-then-horizontal, 4.0=down-then-horizontal
+        let jointTypeValue = 0;
+        if (edge.jointType) {
+            switch (edge.jointType) {
+                case 'horizontal-then-up': jointTypeValue = 1; break;
+                case 'horizontal-then-down': jointTypeValue = 2; break;
+                case 'up-then-horizontal': jointTypeValue = 3; break;
+                case 'down-then-horizontal': jointTypeValue = 4; break;
+                default: jointTypeValue = 0; break;
+            }
+        }
+        pipeInstanceData[offset + 16] = jointTypeValue; // Joint type (16)
+        
+        offset += 17;
     });
 
     return { pipeInstanceData, edgeCount: lShapedEdges.length };
@@ -135,6 +150,14 @@ function updateInstanceData() {
 }
 
 function renderGraph() {
+    // Guard to prevent rendering when uniforms are not properly initialized
+    if (!pipeUniforms || !sphereUniforms) {
+        // Just clear the screen if uniforms aren't ready
+        gl.clearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        return;
+    }
+
     gl.clearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
@@ -260,6 +283,14 @@ function renderLoop() {
 
 // Enhanced renderGraph function with FPS tracking
 function renderGraphWithFPS() {
+    // Guard to prevent rendering when uniforms are not properly initialized
+    if (!pipeUniforms || !sphereUniforms) {
+        // Just clear the screen if uniforms aren't ready
+        gl.clearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        return;
+    }
+
     if (isAnimating) {
         // FPS is handled in renderLoop
         renderGraph();

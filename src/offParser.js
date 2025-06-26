@@ -379,31 +379,65 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
             extremumVertex = endVertex;
             saddleValue = startValue;
             extremumValue = endValue;
-        }        // Create L-shaped connection based on function value relationship
-        if (saddleValue > extremumValue) {
-            // Lower to Higher: Vertical first, then horizontal
+        }
+
+        // Create L-shaped connection based on node types and their relationships
+        let connectionPattern = '';
+        
+        if (startType === NODE_TYPES.SADDLE && endType === NODE_TYPES.MAXIMUM) {
+            // Saddle to Max: horizontal then vertically up
+            connectionPattern = 'horizontal-then-vertical-up';
+        } else if (startType === NODE_TYPES.MAXIMUM && endType === NODE_TYPES.SADDLE) {
+            // Max to Saddle: vertically down then horizontal
+            connectionPattern = 'vertical-down-then-horizontal';
+        } else if (startType === NODE_TYPES.SADDLE && endType === NODE_TYPES.MINIMUM) {
+            // Saddle to Min: horizontal then vertically down
+            connectionPattern = 'horizontal-then-vertical-down';
+        } else if (startType === NODE_TYPES.MINIMUM && endType === NODE_TYPES.SADDLE) {
+            // Min to Saddle: vertically up then horizontal
+            connectionPattern = 'vertical-up-then-horizontal';
+        } else if (startType === NODE_TYPES.SADDLE && endType === NODE_TYPES.SADDLE) {
+            // Saddle to Saddle: determine parent-child relationship by radial distance
+            const startDistance = Math.sqrt(startVertex[0] * startVertex[0] + startVertex[2] * startVertex[2]);
+            const endDistance = Math.sqrt(endVertex[0] * endVertex[0] + endVertex[2] * endVertex[2]);
+            
+            if (startDistance < endDistance) {
+                // Parent to Child: horizontal then vertically down
+                connectionPattern = 'horizontal-then-vertical-down';
+            } else {
+                // Child to Parent: vertically up then horizontal
+                connectionPattern = 'vertical-up-then-horizontal';
+            }
+        } else {
+            // Default case: horizontal then vertical (direction based on Y difference)
+            connectionPattern = startVertex[1] < endVertex[1] ? 'horizontal-then-vertical-up' : 'horizontal-then-vertical-down';
+        }
+
+        // Execute the connection pattern
+        if (connectionPattern === 'horizontal-then-vertical-up' || connectionPattern === 'horizontal-then-vertical-down') {
+            // Horizontal first, then vertical
             const intermediatePoint = [
-                extremumVertex[0], // Move horizontally to extremum's X position
-                saddleVertex[1],  // Keep saddle's Y position (height)
-                extremumVertex[2] // Move horizontally to extremum's Z position
+                endVertex[0],   // Move horizontally to end vertex's X position
+                startVertex[1], // Keep start vertex's Y position
+                endVertex[2]    // Move horizontally to end vertex's Z position
             ];
             
             // Calculate directions for extension
             const horizontalDir = [
-                intermediatePoint[0] - saddleVertex[0],
-                intermediatePoint[1] - saddleVertex[1],
-                intermediatePoint[2] - saddleVertex[2]
+                intermediatePoint[0] - startVertex[0],
+                intermediatePoint[1] - startVertex[1],
+                intermediatePoint[2] - startVertex[2]
             ];
             const horizontalLength = Math.sqrt(horizontalDir[0]*horizontalDir[0] + horizontalDir[1]*horizontalDir[1] + horizontalDir[2]*horizontalDir[2]);
-            const horizontalUnit = [horizontalDir[0]/horizontalLength, horizontalDir[1]/horizontalLength, horizontalDir[2]/horizontalLength];
+            const horizontalUnit = horizontalLength > 0 ? [horizontalDir[0]/horizontalLength, horizontalDir[1]/horizontalLength, horizontalDir[2]/horizontalLength] : [1, 0, 0];
             
             const verticalDir = [
-                extremumVertex[0] - intermediatePoint[0],
-                extremumVertex[1] - intermediatePoint[1],
-                extremumVertex[2] - intermediatePoint[2]
+                endVertex[0] - intermediatePoint[0],
+                endVertex[1] - intermediatePoint[1],
+                endVertex[2] - intermediatePoint[2]
             ];
             const verticalLength = Math.sqrt(verticalDir[0]*verticalDir[0] + verticalDir[1]*verticalDir[1] + verticalDir[2]*verticalDir[2]);
-            const verticalUnit = [verticalDir[0]/verticalLength, verticalDir[1]/verticalLength, verticalDir[2]/verticalLength];
+            const verticalUnit = verticalLength > 0 ? [verticalDir[0]/verticalLength, verticalDir[1]/verticalLength, verticalDir[2]/verticalLength] : [0, 1, 0];
             
             // Extend horizontal segment (end extended by pipe radius)
             const extendedHorizontalEnd = [
@@ -417,133 +451,140 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
                 intermediatePoint[0] - verticalUnit[0] * pipeRadius,
                 intermediatePoint[1] - verticalUnit[1] * pipeRadius,
                 intermediatePoint[2] - verticalUnit[2] * pipeRadius
-            ];            // Calculate 45-degree cutting plane normal for L-shaped downward connection
-            // The plane normal is 45-degree upward from the horizontal cylinder direction
-            const sqrt2 = Math.sqrt(2.0);
-            const horizontalCutNormal = [
-                horizontalUnit[0] / sqrt2,  // Normalize to maintain 45-degree angle
-                -1.0 / sqrt2,                // 45-degree upward component
-                horizontalUnit[2] / sqrt2   // Normalize to maintain 45-degree angle
+            ];
+
+            // Calculate cutting plane based on horizontal direction and vertical direction
+            const isVerticalUp = (endVertex[1] - intermediatePoint[1]) > 0;
+            
+            // VERTICAL BIAS EXPLANATION:
+            // We use [0, 1, 0] for both up and down directions because:
+            // 1. The cut plane normal gets a consistent upward tilt
+            // 2. The fragment shader's cylDir (cylinder direction) has opposite signs for up/down
+            // 3. The joint type determines which side of the plane to discard
+            // 4. This combination naturally produces correct 45° beveled cuts for both orientations
+            // The cylDir sign acts as an implicit correction factor in the shader math
+            const verticalBias = [0, 1, 0]; // Same bias for both directions - see explanation above
+            const cutPlaneDirection = [
+                horizontalUnit[0] + verticalBias[0],
+                horizontalUnit[1] + verticalBias[1],
+                horizontalUnit[2] + verticalBias[2]
             ];
             
-            // Normalize the result
-            const horizontalCutLength = Math.sqrt(horizontalCutNormal[0]*horizontalCutNormal[0] + 
-                                                 horizontalCutNormal[1]*horizontalCutNormal[1] + 
-                                                 horizontalCutNormal[2]*horizontalCutNormal[2]);
-            const normalizedHorizontalCut = [
-                horizontalCutNormal[0]/horizontalCutLength,
-                horizontalCutNormal[1]/horizontalCutLength, 
-                horizontalCutNormal[2]/horizontalCutLength
+            // Normalize the cutting plane normal
+            const cutLength = Math.sqrt(cutPlaneDirection[0]*cutPlaneDirection[0] + 
+                                       cutPlaneDirection[1]*cutPlaneDirection[1] + 
+                                       cutPlaneDirection[2]*cutPlaneDirection[2]);
+            const normalizedCutPlane = [
+                cutPlaneDirection[0]/cutLength,
+                cutPlaneDirection[1]/cutLength,
+                cutPlaneDirection[2]/cutLength
             ];
 
-            // For vertical cylinder, use the same plane but ensure consistency
-            // The cutting plane should be the same for both cylinders at the joint
-            const verticalCutNormal = normalizedHorizontalCut;
-
-            // First segment: saddle to extended intermediate (horizontal)
+            // First segment: start to extended intermediate (horizontal)
             lShapedEdges.push({
-                start: saddleVertex,
+                start: startVertex,
                 end: extendedHorizontalEnd,
                 type: 'horizontal',
                 originalEdgeIndex: originalEdgeIndex + 1,
                 jointPoint: intermediatePoint,
-                cutPlaneNormal: normalizedHorizontalCut // 45-degree upward cutting plane
+                cutPlaneNormal: normalizedCutPlane,
+                jointType: isVerticalUp ? 'horizontal-then-up' : 'horizontal-then-down'
             });
 
-            // Second segment: extended intermediate to extremum (vertical)
+            // Second segment: extended intermediate to end (vertical)
             lShapedEdges.push({
                 start: extendedVerticalStart,
-                end: extremumVertex,
+                end: endVertex,
                 type: 'vertical',
                 originalEdgeIndex: originalEdgeIndex + 1,
                 jointPoint: intermediatePoint,
-                cutPlaneNormal: verticalCutNormal // Same plane, opposite orientation
+                cutPlaneNormal: normalizedCutPlane,
+                jointType: isVerticalUp ? 'horizontal-then-up' : 'horizontal-then-down'
             });
-
-            // Store intermediate point for sphere rendering
-            // intermediatePoints.push(intermediatePoint);        
-        } else {
-            // Higher to Lower: Horizontal first, then vertical
-            const verticalIntermediatePoint = [
-                saddleVertex[0],    // Keep saddle's X position
-                extremumVertex[1],  // Move vertically to extremum's Y position
-                saddleVertex[2]     // Keep saddle's Z position
+        
+        } else if (connectionPattern === 'vertical-down-then-horizontal' || connectionPattern === 'vertical-up-then-horizontal') {
+            // Vertical first, then horizontal - but we'll push horizontal first for easier plane calculation
+            const intermediatePoint = [
+                startVertex[0],  // Keep start vertex's X position
+                endVertex[1],    // Move vertically to end vertex's Y position
+                startVertex[2]   // Keep start vertex's Z position
             ];
             
             // Calculate directions for extension
             const verticalDir = [
-                verticalIntermediatePoint[0] - saddleVertex[0],
-                verticalIntermediatePoint[1] - saddleVertex[1],
-                verticalIntermediatePoint[2] - saddleVertex[2]
+                intermediatePoint[0] - startVertex[0],
+                intermediatePoint[1] - startVertex[1],
+                intermediatePoint[2] - startVertex[2]
             ];
             const verticalLength = Math.sqrt(verticalDir[0]*verticalDir[0] + verticalDir[1]*verticalDir[1] + verticalDir[2]*verticalDir[2]);
-            const verticalUnit = [verticalDir[0]/verticalLength, verticalDir[1]/verticalLength, verticalDir[2]/verticalLength];
+            const verticalUnit = verticalLength > 0 ? [verticalDir[0]/verticalLength, verticalDir[1]/verticalLength, verticalDir[2]/verticalLength] : [0, 1, 0];
             
             const horizontalDir = [
-                extremumVertex[0] - verticalIntermediatePoint[0],
-                extremumVertex[1] - verticalIntermediatePoint[1],
-                extremumVertex[2] - verticalIntermediatePoint[2]
+                endVertex[0] - intermediatePoint[0],
+                endVertex[1] - intermediatePoint[1],
+                endVertex[2] - intermediatePoint[2]
             ];
             const horizontalLength = Math.sqrt(horizontalDir[0]*horizontalDir[0] + horizontalDir[1]*horizontalDir[1] + horizontalDir[2]*horizontalDir[2]);
-            const horizontalUnit = [horizontalDir[0]/horizontalLength, horizontalDir[1]/horizontalLength, horizontalDir[2]/horizontalLength];
+            const horizontalUnit = horizontalLength > 0 ? [horizontalDir[0]/horizontalLength, horizontalDir[1]/horizontalLength, horizontalDir[2]/horizontalLength] : [1, 0, 0];
             
             // Extend vertical segment (end extended by pipe radius)
             const extendedVerticalEnd = [
-                verticalIntermediatePoint[0] + verticalUnit[0] * pipeRadius,
-                verticalIntermediatePoint[1] + verticalUnit[1] * pipeRadius,
-                verticalIntermediatePoint[2] + verticalUnit[2] * pipeRadius
+                intermediatePoint[0] + verticalUnit[0] * pipeRadius,
+                intermediatePoint[1] + verticalUnit[1] * pipeRadius,
+                intermediatePoint[2] + verticalUnit[2] * pipeRadius
             ];
             
             // Extend horizontal segment (start extended by pipe radius)
             const extendedHorizontalStart = [
-                verticalIntermediatePoint[0] - horizontalUnit[0] * pipeRadius,
-                verticalIntermediatePoint[1] - horizontalUnit[1] * pipeRadius,
-                verticalIntermediatePoint[2] - horizontalUnit[2] * pipeRadius
-            ];            // Calculate 45-degree cutting plane normal for L-shaped upward connection
-            // The plane normal is 45-degree downward from the horizontal cylinder direction
-            const sqrt2 = Math.sqrt(2.0);
-            const horizontalCutNormal = [
-                horizontalUnit[0] / sqrt2,  // Normalize to maintain 45-degree angle
-                1.0 / sqrt2,               // 45-degree downward component
-                horizontalUnit[2] / sqrt2   // Normalize to maintain 45-degree angle
+                intermediatePoint[0] - horizontalUnit[0] * pipeRadius,
+                intermediatePoint[1] - horizontalUnit[1] * pipeRadius,
+                intermediatePoint[2] - horizontalUnit[2] * pipeRadius
+            ];
+
+            // Calculate cutting plane based on horizontal direction and vertical direction
+            const isVerticalDown = (intermediatePoint[1] - startVertex[1]) > 0;
+            
+            // VERTICAL BIAS EXPLANATION:
+            // Same principle as horizontal-then-vertical: [0, 1, 0] works for both directions
+            // The combination of consistent bias + cylDir sign + joint type produces correct cuts
+            const verticalBias = [0, 1, 0]; // Same bias for both directions - see explanation above
+            const cutPlaneDirection = [
+                horizontalUnit[0] + verticalBias[0],
+                horizontalUnit[1] + verticalBias[1],
+                horizontalUnit[2] + verticalBias[2]
             ];
             
-            // Normalize the result
-            const horizontalCutLength = Math.sqrt(horizontalCutNormal[0]*horizontalCutNormal[0] + 
-                                                 horizontalCutNormal[1]*horizontalCutNormal[1] + 
-                                                 horizontalCutNormal[2]*horizontalCutNormal[2]);
-            const normalizedHorizontalCut = [
-                horizontalCutNormal[0]/horizontalCutLength,
-                horizontalCutNormal[1]/horizontalCutLength, 
-                horizontalCutNormal[2]/horizontalCutLength
+            // Normalize the cutting plane normal
+            const cutLength = Math.sqrt(cutPlaneDirection[0]*cutPlaneDirection[0] + 
+                                       cutPlaneDirection[1]*cutPlaneDirection[1] + 
+                                       cutPlaneDirection[2]*cutPlaneDirection[2]);
+            const normalizedCutPlane = [
+                cutPlaneDirection[0]/cutLength,
+                cutPlaneDirection[1]/cutLength,
+                cutPlaneDirection[2]/cutLength
             ];
 
-            // For vertical cylinder, use the same plane to ensure consistency
-            // The cutting plane should be the same for both cylinders at the joint
-            const verticalCutNormal = normalizedHorizontalCut;
-
-            // First segment: saddle to extended intermediate (vertical)
+            // Push horizontal segment first for easier plane calculation
             lShapedEdges.push({
-                start: saddleVertex,
+                start: extendedHorizontalStart,
+                end: endVertex,
+                type: 'horizontal',
+                originalEdgeIndex: originalEdgeIndex + 1,
+                jointPoint: intermediatePoint,
+                cutPlaneNormal: normalizedCutPlane,
+                jointType: isVerticalDown ? 'down-then-horizontal' : 'up-then-horizontal'
+            });
+
+            // Then push vertical segment
+            lShapedEdges.push({
+                start: startVertex,
                 end: extendedVerticalEnd,
                 type: 'vertical',
                 originalEdgeIndex: originalEdgeIndex + 1,
-                jointPoint: verticalIntermediatePoint,
-                cutPlaneNormal: verticalCutNormal // 45-degree cutting plane
+                jointPoint: intermediatePoint,
+                cutPlaneNormal: normalizedCutPlane,
+                jointType: isVerticalDown ? 'down-then-horizontal' : 'up-then-horizontal'
             });
-
-            // Second segment: extended intermediate to extremum (horizontal)
-            lShapedEdges.push({
-                start: extendedHorizontalStart,
-                end: extremumVertex,
-                type: 'horizontal',
-                originalEdgeIndex: originalEdgeIndex + 1,
-                jointPoint: verticalIntermediatePoint,
-                cutPlaneNormal: normalizedHorizontalCut // Same plane, for horizontal cutting
-            });
-
-            // Store intermediate point for sphere rendering
-            // intermediatePoints.push(verticalIntermediatePoint);
         }
     });
 

@@ -68,7 +68,10 @@ canvas.addEventListener('mousemove', (e) => {
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
         
-        renderGraph();
+        // Only render if uniforms are properly initialized
+        if (pipeUniforms && sphereUniforms) {
+            renderGraph();
+        }
     }
 });
 
@@ -82,7 +85,11 @@ canvas.addEventListener('wheel', (e) => {
     const zoomFactor = 1 + (e.deltaY * 0.001);
     cameraDistance *= zoomFactor;
     cameraDistance = Math.max(0.1, cameraDistance); // Prevent going through the target
-    renderGraph();
+    
+    // Only render if uniforms are properly initialized
+    if (pipeUniforms && sphereUniforms) {
+        renderGraph();
+    }
 });
 
 window.addEventListener('resize', () => {
@@ -99,7 +106,11 @@ window.addEventListener('resize', () => {
     canvas.style.height = displayHeight + 'px';
       gl.viewport(0, 0, canvas.width, canvas.height);
     mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
-    renderGraph();
+    
+    // Only render if uniforms are properly initialized
+    if (pipeUniforms && sphereUniforms) {
+        renderGraph();
+    }
 });
 
 // Trigger initial resize to set up canvas properly
@@ -124,12 +135,16 @@ document.getElementById('edgeSelect').addEventListener('input', function () {
         selectedEdge = edgeNum;
         showStatus(`Edge ${edgeNum} highlighted`, 'info');
         initializeGraph(offData);
-        renderGraph();
+        if (pipeUniforms && sphereUniforms) {
+            renderGraph();
+        }
     } else {
         selectedEdge = null;
         showStatus(`Invalid edge number. Please enter a number between 1 and ${edges.length}`, 'error');
         initializeGraph(offData);
-        renderGraph();
+        if (pipeUniforms && sphereUniforms) {
+            renderGraph();
+        }
     }
 });
 
