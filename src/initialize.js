@@ -104,6 +104,7 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
     const pipeInstColorLoc = gl.getAttribLocation(pipeProgram, "a_instanceColor");
     const pipeJointPointLoc = gl.getAttribLocation(pipeProgram, "a_jointPoint");
     const pipeCutNormalLoc = gl.getAttribLocation(pipeProgram, "a_cutPlaneNormal");
+    const pipeJointTypeLoc = gl.getAttribLocation(pipeProgram, "a_jointType");
     const pipePrevCylEndLoc = gl.getAttribLocation(pipeProgram, "a_prevCylEnd");
     const pipeNextCylStartLoc = gl.getAttribLocation(pipeProgram, "a_nextCylStart");
     
@@ -121,7 +122,8 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
             pipeInstEndVertex,
             instColorLoc: pipeInstColorLoc,
             pipeJointPointLoc,
-            pipeCutNormalLoc
+            pipeCutNormalLoc,
+            pipeJointTypeLoc
         }
     };
 }
@@ -313,33 +315,38 @@ gl.bufferData(gl.ARRAY_BUFFER, pipeInstanceData, gl.STATIC_DRAW);
 
 // Instance start position
 gl.enableVertexAttribArray(attributes.pipe.pipeInstStartVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 64, 0);
+gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 68, 0);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstStartVertex, 1);
 
 // Instance end position
 gl.enableVertexAttribArray(attributes.pipe.pipeInstEndVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 64, 12);
+gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 68, 12);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstEndVertex, 1);
 
 // Instance radius
 gl.enableVertexAttribArray(attributes.pipe.pipeInstSizeLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 64, 24);
+gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 68, 24);
 gl.vertexAttribDivisor(attributes.pipe.pipeInstSizeLoc, 1);
 
 // Instance color
 gl.enableVertexAttribArray(attributes.pipe.instColorLoc);
-gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 64, 28);
+gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 68, 28);
 gl.vertexAttribDivisor(attributes.pipe.instColorLoc, 1);
 
 // Joint point (L-joint cutting)
 gl.enableVertexAttribArray(attributes.pipe.pipeJointPointLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeJointPointLoc, 3, gl.FLOAT, false, 64, 40);
+gl.vertexAttribPointer(attributes.pipe.pipeJointPointLoc, 3, gl.FLOAT, false, 68, 40);
 gl.vertexAttribDivisor(attributes.pipe.pipeJointPointLoc, 1);
 
 // Cut plane normal (L-joint cutting)
 gl.enableVertexAttribArray(attributes.pipe.pipeCutNormalLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeCutNormalLoc, 3, gl.FLOAT, false, 64, 52);
+gl.vertexAttribPointer(attributes.pipe.pipeCutNormalLoc, 3, gl.FLOAT, false, 68, 52);
 gl.vertexAttribDivisor(attributes.pipe.pipeCutNormalLoc, 1);
+
+// Joint type (L-joint cutting)
+gl.enableVertexAttribArray(attributes.pipe.pipeJointTypeLoc);
+gl.vertexAttribPointer(attributes.pipe.pipeJointTypeLoc, 1, gl.FLOAT, false, 68, 64);
+gl.vertexAttribDivisor(attributes.pipe.pipeJointTypeLoc, 1);
 
 // Index buffer
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);

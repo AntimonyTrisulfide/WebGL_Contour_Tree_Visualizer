@@ -4,7 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Contour Tree Visualizer</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+    <script src="lib/gl-matrix-min.js"></script>
+    <script>
+        // Make gl-matrix components available globally for all modules
+        window.mat4 = glMatrix.mat4;
+        window.vec3 = glMatrix.vec3;
+        window.vec4 = glMatrix.vec4;
+        window.mat3 = glMatrix.mat3;
+    </script>
     <script src="src/parameterManager.js"></script>
     <script src="src/globalvar.js" defer></script>
     <script src="src/offParser.js"></script>
@@ -15,6 +22,10 @@
     <script src="src/input.js" defer></script>
     <script src="src/debug.js"></script>
     <script src="src/menu.js" defer></script>
+    <script>
+        // Clear the Console first
+        console.clear();
+    </script>
 </head>
 <body>    <div class="controls">
         <div class="file-input-wrapper" id = "fileInputWrapper">

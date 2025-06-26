@@ -6,6 +6,7 @@ in float a_instanceRadius;
 in vec3 a_instanceColor;
 in vec3 a_jointPoint;
 in vec3 a_cutPlaneNormal;
+in float a_jointType;  // Joint type: 1.0=horiz-up, 2.0=horiz-down, 3.0=up-horiz, 4.0=down-horiz
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
@@ -20,6 +21,7 @@ out vec3 vCylEnd;
 out float vRadius;
 out vec3 vJointPoint;
 out vec3 vCutPlaneNormal;
+out float vJointType;
 
 void main() {
     // Calculate cylinder properties
@@ -63,4 +65,5 @@ void main() {
     vRadius = a_instanceRadius;
     vJointPoint = (uModelMatrix * vec4(a_jointPoint, 1.0)).xyz;
     vCutPlaneNormal = (uModelMatrix * vec4(a_cutPlaneNormal, 0.0)).xyz; // Normal vector, so w=0
+    vJointType = a_jointType;
 }
