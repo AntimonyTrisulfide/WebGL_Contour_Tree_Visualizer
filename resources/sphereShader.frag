@@ -63,42 +63,32 @@ void main() {
       // Calculate intersection point in view space
     vec3 viewHitPos = rayOrigin + t * rayDirection;
     
-    // Calculate surface normal in view space
+    // Calculate surface normal in view space (ProteinVis style)
     vec3 viewNormal = normalize(viewHitPos - sphereCenter);
     
-    // Transform hit position back to world space for lighting
-    mat4 invModelView = inverse(uViewMatrix * uModelMatrix);
-    vec3 worldHitPos = (invModelView * vec4(viewHitPos, 1.0)).xyz;
-    
-    // Transform normal to world space (simple approach - since sphere center is in world space)
-    vec3 worldNormal = normalize(worldHitPos - vInstanceCenter);
-    // === DEPTH CALCULATION ===
-    // Use view space hit position to calculate depth (like ProteinVis)
+    // === DEPTH CALCULATION (ProteinVis style) ===
     vec4 clipHitPos = uProjectionMatrix * vec4(viewHitPos, 1.0);
-    
-    // Convert to normalized device coordinates and then to depth buffer value
     float ndcDepth = clipHitPos.z / clipHitPos.w;
     gl_FragDepth = (ndcDepth + 1.0) * 0.5; // Convert from [-1,1] to [0,1]
-      // Lighting calculations using world space positions and normals
-    vec3 lightDir = normalize(uLightPos - worldHitPos);
-    vec3 viewDir = normalize(vCameraPos - worldHitPos);
-    vec3 halfDir = normalize(lightDir + viewDir);
-      // Ambient - reduced for less flat lighting
-    float ambientStrength = 0.4;
-    vec3 ambient = ambientStrength * vInstanceColor;
     
-    // Diffuse - enhanced for better shape definition
-    float diff = max(dot(worldNormal, lightDir), 0.0);
-    vec3 diffuse = 0.5 * diff * vInstanceColor;
+    // === LIGHTING (ProteinVis style) ===
+    // For camera-attached light, use a fixed offset in view space to create moving specular
+    // This simulates a headlamp slightly above and to the right of the camera
+    vec3 viewLightPos = vec3(1, 4, 5); // Fixed position in view space
     
-    // Specular - reduced strength and softer falloff (using Blinn-Phong like the pipe shader)
-    float specularStrength = 0.3;
-    float spec = pow(max(dot(worldNormal, halfDir), 0.0), 32.0);
-    vec3 specular = specularStrength * spec * uLightColor;
-      // Combine lighting components
-    vec3 result = ambient + diffuse + specular;
+    // Calculate lighting vectors in view space
+    vec3 lightDir = normalize(viewLightPos - viewHitPos);
+    vec3 viewDir = normalize(-viewHitPos); // From surface to camera (origin) in view space
+    vec3 halfVector = normalize(lightDir + viewDir);
     
-    fragColor = vec4(result, 1.0);
+    // ProteinVis lighting model: much lower ambient, proper diffuse/specular balance
+    float diffuse = max(0.0, dot(viewNormal, lightDir));
+    float specular = pow(max(0.0, dot(viewNormal, halfVector)), 64.0);
+    
+    // ProteinVis lighting formula: low ambient + diffuse color + white specular
+    vec3 finalColor = vInstanceColor * (0.25 + 0.5 * diffuse) + vec3(1.0, 1.0, 1.0) * 0.6 * specular;
+    
+    fragColor = vec4(finalColor, 1.0);
 
     
 }
