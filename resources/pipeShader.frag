@@ -117,22 +117,31 @@ void main() {
     }
 
 
-    // === DEPTH CALCULATION ===
-    vec4 clipPos = uProjectionMatrix * uViewMatrix * uModelMatrix * vec4(hitPoint, 1.0);
-    float ndcDepth = clipPos.z / clipPos.w;
-    gl_FragDepth = (ndcDepth + 1.0) * 0.5;
+    // === DEPTH CALCULATION (ProteinVis style) ===
+    // Transform hit point to view space first, then apply projection
+    vec3 viewSpacePoint = (uViewMatrix * uModelMatrix * vec4(hitPoint, 1.0)).xyz;
+    vec4 clipPos = uProjectionMatrix * vec4(viewSpacePoint, 1.0);
+    gl_FragDepth = (clipPos.z / clipPos.w + 1.0) * 0.5;
     
     // === LIGHTING (ProteinVis style) ===
-    vec3 lightDir = normalize(uLightPos - hitPoint);
-    vec3 viewDir = normalize(vCameraPos - hitPoint);
+    // For camera-attached light, use a fixed offset in view space to create moving specular
+    // This simulates a headlamp slightly above and to the right of the camera
+    vec3 viewLightPos = vec3(1, 4, 5); // Fixed position in view space
+    
+    // Transform normal to view space for lighting calculations
+    vec3 viewNormal = normalize((uViewMatrix * uModelMatrix * vec4(cylinderNormal, 0.0)).xyz);
+    
+    // Calculate lighting vectors in view space
+    vec3 lightDir = normalize(viewLightPos - viewSpacePoint);
+    vec3 viewDir = normalize(-viewSpacePoint); // From surface to camera (origin) in view space
     vec3 halfVector = normalize(lightDir + viewDir);
     
     // Blinn-Phong lighting with ProteinVis parameters
-    float diffuse = max(0.0, dot(cylinderNormal, lightDir));
-    float specular = pow(max(0.0, dot(cylinderNormal, halfVector)), 64.0);
+    float diffuse = max(0.0, dot(viewNormal, lightDir));
+    float specular = pow(max(0.0, dot(viewNormal, halfVector)), 64.0);
     
-    // ProteinVis lighting formula: ambient(0.4) + diffuse(0.6) + specular(0.3)
-    vec3 finalColor = vInstanceColor * (0.4 + 0.6 * diffuse) + vec3(1.0, 1.0, 1.0) * 0.3 * specular;
+    // ProteinVis lighting formula: ambient(0.2) + diffuse(0.5) + specular(0.3) to match sphere
+    vec3 finalColor = vInstanceColor * (0.25 + 0.5 * diffuse) + vec3(1.0, 1.0, 1.0) * 0.6 * specular;
     
     fragColor = vec4(finalColor, 1.0);
 }

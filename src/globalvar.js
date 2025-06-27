@@ -7,7 +7,6 @@
 Issues with the code:
     1. The Overlapping of Spheres and Cylinders is still present.
     2. Issues with anti-aliasing on the cylinders (jagged edges).
-    3. Spheres anti-aliasing causing weird white outline (Block 1 Data)
 
 New Functionality (to add)
     1. Add selection logic using mouse clicks to select edges and vertices.
@@ -55,9 +54,9 @@ const NODE_TYPES = {
 
 // Colors for each type
 let NODE_COLORS = {
-    [NODE_TYPES.MINIMUM]: [0.0, 0.4, 1.0],   // Blue
-    [NODE_TYPES.SADDLE]: [0.0, 1.0, 1.0],    // Cyan
-    [NODE_TYPES.MAXIMUM]: [1.0, 0.0, 0.0],    // Red
+    [NODE_TYPES.MINIMUM]: [0.106, 0.239, 0.506],   // Blue
+    [NODE_TYPES.SADDLE]: [0.216, 0.961, 0.922],    // Cyan
+    [NODE_TYPES.MAXIMUM]: [0.702, 0.055, 0.086],    // Red
     [NODE_TYPES.INTERMEDIATE]: [0.8, 0.8, 0.8], // Default gray for intermediate points
 };
 

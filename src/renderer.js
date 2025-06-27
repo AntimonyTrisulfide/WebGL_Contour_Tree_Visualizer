@@ -183,7 +183,7 @@ function renderGraph() {
         gl.uniformMatrix4fv(pipeUniforms.uModelMatrix, false, modelMatrix);
     }
     if (pipeUniforms.uLightPos) {
-        gl.uniform3fv(pipeUniforms.uLightPos, lightPosition);
+        gl.uniform3fv(pipeUniforms.uLightPos, eye); // Use camera position as light position
     }
     if (pipeUniforms.uLightColor) {
         gl.uniform3fv(pipeUniforms.uLightColor, lightColor);
@@ -213,7 +213,7 @@ function renderGraph() {
         gl.uniformMatrix4fv(sphereUniforms.uViewMatrix, false, viewMatrix);
     }
     if (sphereUniforms.uLightPos) {
-        gl.uniform3fv(sphereUniforms.uLightPos, lightPosition);
+        gl.uniform3fv(sphereUniforms.uLightPos, eye); // Use camera position as light position
     }
     if (sphereUniforms.uLightColor) {
         gl.uniform3fv(sphereUniforms.uLightColor, lightColor);
