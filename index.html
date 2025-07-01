@@ -19,6 +19,8 @@
     <script src="src/camera.js"></script>
     <script src="src/initialize.js"></script>
     <script src="src/renderer.js"></script>
+    <script src="src/mousePicking.js"></script>
+    <script src="src/edgeInfo.js"></script>
     <script src="src/input.js" defer></script>
     <script src="src/debug.js"></script>
     <script src="src/menu.js" defer></script>
@@ -32,10 +34,6 @@
             <input type="file" id="fileInput" accept=".off">
             <label for="fileInput" class="file-input-label">Load OFF File</label>
         </div>
-        <div id="edgeInputWrapper">
-            <label for="edgeSelect">Edge Number: </label>
-            <input type="number" id="edgeSelect" min="1" value="1">
-        </div>
         <div class="fps-controls">
             <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
             <div id="fpsDisplay" class="fps-display">FPS: --</div>
@@ -47,11 +45,46 @@
         <h3>Controls:</h3>
         <ul>
             <li><strong>Mouse drag:</strong> Rotate camera</li>
+            <li><strong>Mouse click:</strong> Select/deselect edges</li>
             <!-- <li><strong>Shift + Mouse Drag:</strong> Translate/pan view</li> -->
             <li><strong>Mouse wheel:</strong> Zoom in/out</li>
             <!-- <li><strong>Reset button (Ctrl):</strong> Return to center</li> -->
         </ul>
-    </div>    <div id="status" class="status"></div>
+    </div>    <!-- Edge Information Window -->
+    <div id="edgeInfoPanel" class="edge-info-panel collapsed">
+        <div class="edge-info-header" id="edgeInfoHeader">
+            <span class="edge-info-title">Edge Information</span>
+            <button class="edge-info-toggle" id="edgeInfoToggle">▼</button>
+        </div>
+        <div class="edge-info-content" id="edgeInfoContent">
+            <div class="edge-info-item">
+                <strong>Edge Number:</strong> <span id="edgeNumber">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Vertex:</strong> <span id="fromVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Vertex:</strong> <span id="toVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Type:</strong> <span id="fromVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Type:</strong> <span id="toVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Value:</strong> <span id="fromVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Value:</strong> <span id="toVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>Connection Type:</strong> <span id="connectionType">L-shaped</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status"></div>
     <canvas id="canvas"></canvas>
     <script>
         const _c = document.getElementsByTagName('canvas')[0];

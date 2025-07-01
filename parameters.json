@@ -15,11 +15,6 @@
       0.8,
       0.8
     ],
-    "lightColor": [
-      1,
-      1,
-      1
-    ],
     "nodeColors": {
       "minimum": [
         0,
@@ -42,13 +37,6 @@
         0.8
       ]
     }
-  },
-  "lighting": {
-    "lightPosition": [
-      10,
-      10,
-      10
-    ]
   },
   "controls": {
     "mouseSensitivity": 0.005

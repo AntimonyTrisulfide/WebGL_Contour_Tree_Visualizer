@@ -1,5 +1,11 @@
 // src/renderer.js
 
+// Global variables for efficient edge selection
+let cachedPipeInstanceData = null; // Cache the full instance data
+let edgeToInstanceMapping = new Map(); // Map original edge index to instance indices
+let previousSelectedEdge = -1; // Track previous selection for efficient updates
+let lShapedEdgesCache = null; // Cache the L-shaped edges to avoid recalculation
+
 function calculateJunctionData(lShapedEdges, index) {
     const currentEdge = lShapedEdges[index];
     const originalEdgeIndex = currentEdge.originalEdgeIndex;
@@ -66,27 +72,53 @@ function calculateJunctionData(lShapedEdges, index) {
     };
 }
 function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
-    const lShapedEdges = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
-    const pipeInstanceData = new Float32Array(lShapedEdges.length * 17); // Extended for joint type: start(3)+end(3)+radius(1)+color(3)+jointPoint(3)+cutNormal(3)+jointType(1)
+    // If we have cached data and we're just updating selection, use it
+    if (cachedPipeInstanceData && edgeToInstanceMapping.size > 0) {
+        // Update selection in cached data efficiently
+        updateEdgeSelection(selectedEdge, previousSelectedEdge);
+        previousSelectedEdge = selectedEdge; // Update tracking
+        return { 
+            pipeInstanceData: cachedPipeInstanceData, 
+            edgeCount: cachedPipeInstanceData.length / 17 
+        };
+    }
+    
+    // Otherwise, initialize fresh data (first time or after graph change)
+    console.log('Initializing fresh pipe instance data');
+    return initializePipeInstanceData(vertices, edges, vertexTypes, vertexValues);
+}
+
+// Initialize and cache pipe instance data for efficient updates
+function initializePipeInstanceData(vertices, edges, vertexTypes, vertexValues) {
+    lShapedEdgesCache = createLShapedConnections(vertices, edges, vertexTypes, vertexValues);
+    cachedPipeInstanceData = new Float32Array(lShapedEdgesCache.length * 17);
+    edgeToInstanceMapping.clear();
 
     let offset = 0;
-    lShapedEdges.forEach((edge, index) => {
+    lShapedEdgesCache.forEach((edge, index) => {
         const originalEdgeIndex = edge.originalEdgeIndex;
-        const isSelected = selectedEdge === originalEdgeIndex;
         
-        // Basic instance data
-        pipeInstanceData.set(edge.start, offset);                              // Start position (0-2)
-        pipeInstanceData.set(edge.end, offset + 3);                           // End position (3-5)
-        pipeInstanceData[offset + 6] = pipeRadius;                            // Radius (6)
-        pipeInstanceData.set(isSelected ? [1.0, 0.0, 1.0] : pipeColor, offset + 7); // Color (7-9)
+        // Map original edge to all its L-shaped segments
+        if (!edgeToInstanceMapping.has(originalEdgeIndex)) {
+            edgeToInstanceMapping.set(originalEdgeIndex, []);
+        }
+        edgeToInstanceMapping.get(originalEdgeIndex).push(index);
+        
+        // Check if this edge should be selected initially
+        const isSelected = selectedEdge === originalEdgeIndex;
+        const edgeColor = isSelected ? [1.0, 0.0, 1.0] : pipeColor;
+        
+        // Set initial data
+        cachedPipeInstanceData.set(edge.start, offset);                              // Start position (0-2)
+        cachedPipeInstanceData.set(edge.end, offset + 3);                           // End position (3-5)
+        cachedPipeInstanceData[offset + 6] = pipeRadius;                            // Radius (6)
+        cachedPipeInstanceData.set(edgeColor, offset + 7);                          // Color with initial selection (7-9)
         
         // Joint data for L-joint cutting
-        pipeInstanceData.set(edge.jointPoint || [0.0, 0.0, 0.0], offset + 10); // Joint point (10-12)
-        pipeInstanceData.set(edge.cutPlaneNormal || [0.0, 0.0, 0.0], offset + 13); // Cut plane normal (13-15)
+        cachedPipeInstanceData.set(edge.jointPoint || [0.0, 0.0, 0.0], offset + 10); // Joint point (10-12)
+        cachedPipeInstanceData.set(edge.cutPlaneNormal || [0.0, 0.0, 0.0], offset + 13); // Cut plane normal (13-15)
         
-        // Joint type encoding for fragment shader L-joint cutting logic:
-        // 0.0=none, 1.0=horizontal-then-up, 2.0=horizontal-then-down, 
-        // 3.0=up-then-horizontal, 4.0=down-then-horizontal
+        // Joint type encoding
         let jointTypeValue = 0;
         if (edge.jointType) {
             switch (edge.jointType) {
@@ -97,12 +129,89 @@ function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
                 default: jointTypeValue = 0; break;
             }
         }
-        pipeInstanceData[offset + 16] = jointTypeValue; // Joint type (16)
+        cachedPipeInstanceData[offset + 16] = jointTypeValue; // Joint type (16)
         
         offset += 17;
     });
 
-    return { pipeInstanceData, edgeCount: lShapedEdges.length };
+    // Set the tracking variable to current selection
+    previousSelectedEdge = selectedEdge;
+
+    console.log(`Initialized cached pipe data for ${lShapedEdgesCache.length} edge segments`);
+    console.log(`Initial selected edge: ${selectedEdge}`);
+    console.log(`Edge to instance mapping:`, edgeToInstanceMapping);
+    
+    return { pipeInstanceData: cachedPipeInstanceData, edgeCount: lShapedEdgesCache.length };
+}
+
+// Efficient function to update only color data for selection changes
+function updateEdgeSelection(newSelectedEdge, previousEdge = -1) {
+    if (!cachedPipeInstanceData || !edgeToInstanceMapping) {
+        console.warn('Pipe data not cached, need full initialization');
+        return false;
+    }
+
+    console.log(`updateEdgeSelection called: ${previousEdge} -> ${newSelectedEdge}`);
+
+    const selectionColor = [1.0, 0.0, 1.0]; // Magenta for selected
+    const defaultColor = pipeColor; // Default pipe color
+    const colorUpdates = []; // Track which color regions to update
+
+    // Deselect previous edge (set to default color)
+    if (previousEdge >= 0 && edgeToInstanceMapping.has(previousEdge)) {
+        const instanceIndices = edgeToInstanceMapping.get(previousEdge);
+        console.log(`Deselecting edge ${previousEdge}, affects ${instanceIndices.length} segments`);
+        instanceIndices.forEach(instanceIndex => {
+            const colorOffset = instanceIndex * 17 + 7; // Color starts at offset 7
+            cachedPipeInstanceData[colorOffset] = defaultColor[0];     // R
+            cachedPipeInstanceData[colorOffset + 1] = defaultColor[1]; // G
+            cachedPipeInstanceData[colorOffset + 2] = defaultColor[2]; // B
+            
+            // Track this update for efficient GPU upload
+            colorUpdates.push({
+                byteOffset: colorOffset * 4, // 4 bytes per float
+                data: new Float32Array([defaultColor[0], defaultColor[1], defaultColor[2]])
+            });
+        });
+    }
+
+    // Select new edge (set to selection color)
+    if (newSelectedEdge >= 0 && edgeToInstanceMapping.has(newSelectedEdge)) {
+        const instanceIndices = edgeToInstanceMapping.get(newSelectedEdge);
+        console.log(`Selecting edge ${newSelectedEdge}, affects ${instanceIndices.length} segments`);
+        instanceIndices.forEach(instanceIndex => {
+            const colorOffset = instanceIndex * 17 + 7; // Color starts at offset 7
+            cachedPipeInstanceData[colorOffset] = selectionColor[0];     // R
+            cachedPipeInstanceData[colorOffset + 1] = selectionColor[1]; // G
+            cachedPipeInstanceData[colorOffset + 2] = selectionColor[2]; // B
+            
+            // Track this update for efficient GPU upload
+            colorUpdates.push({
+                byteOffset: colorOffset * 4, // 4 bytes per float
+                data: new Float32Array([selectionColor[0], selectionColor[1], selectionColor[2]])
+            });
+        });
+    } else if (newSelectedEdge >= 0) {
+        console.warn(`Edge ${newSelectedEdge} not found in mapping. Available edges:`, Array.from(edgeToInstanceMapping.keys()));
+    }
+
+    // Update GPU buffer with only the changed color data using bufferSubData
+    if (colorUpdates.length > 0 && pipeInstanceBuffer) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, pipeInstanceBuffer);
+        
+        // Apply each color update individually for maximum efficiency
+        colorUpdates.forEach(update => {
+            gl.bufferSubData(gl.ARRAY_BUFFER, update.byteOffset, update.data);
+        });
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+        
+        console.log(`Updated ${colorUpdates.length} color regions efficiently using bufferSubData`);
+    } else {
+        console.log('No color updates needed or buffer not available');
+    }
+
+    return true;
 }
 
 function updateInstanceData() {
@@ -161,6 +270,10 @@ function renderGraph() {
     gl.clearColor(backgroundColor[0], backgroundColor[1], backgroundColor[2], backgroundColor[3]);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
+    gl.enable(gl.DEPTH_TEST);
+    gl.depthFunc(gl.LESS); // or gl.LEQUAL?
+    gl.depthMask(true);
+
     const eye = calculateCameraPosition();
     const up = calculateUpVector();
     const target = [
@@ -181,12 +294,6 @@ function renderGraph() {
     }
     if (pipeUniforms.uModelMatrix) {
         gl.uniformMatrix4fv(pipeUniforms.uModelMatrix, false, modelMatrix);
-    }
-    if (pipeUniforms.uLightPos) {
-        gl.uniform3fv(pipeUniforms.uLightPos, eye); // Use camera position as light position
-    }
-    if (pipeUniforms.uLightColor) {
-        gl.uniform3fv(pipeUniforms.uLightColor, lightColor);
     }
     if (pipeUniforms.uCameraPos) {
         gl.uniform3fv(pipeUniforms.uCameraPos, eye);    
@@ -211,12 +318,6 @@ function renderGraph() {
     }
     if (sphereUniforms.uViewMatrix) {
         gl.uniformMatrix4fv(sphereUniforms.uViewMatrix, false, viewMatrix);
-    }
-    if (sphereUniforms.uLightPos) {
-        gl.uniform3fv(sphereUniforms.uLightPos, eye); // Use camera position as light position
-    }
-    if (sphereUniforms.uLightColor) {
-        gl.uniform3fv(sphereUniforms.uLightColor, lightColor);
     }
     if (sphereUniforms.uCameraPos) {
         gl.uniform3fv(sphereUniforms.uCameraPos, eye);
@@ -298,4 +399,53 @@ function renderGraphWithFPS() {
         // Single frame render
         renderGraph();
     }
+}
+
+// Function to update only pipe highlighting without full reinitialization
+function updatePipeHighlighting() {
+    if (!vertices || !edges || !vertexTypes || !vertexValues) {
+        console.warn('Graph data not available for updating pipe highlighting');
+        return;
+    }
+
+    if (!pipeInstanceBuffer) {
+        console.warn('Pipe instance buffer not available, reinitializing graph');
+        // If buffer doesn't exist, we need to reinitialize
+        if (typeof offData !== 'undefined' && offData) {
+            initializeGraph(offData);
+        }
+        return;
+    }
+
+    // Try efficient selection update first
+    const success = updateEdgeSelection(selectedEdge, previousSelectedEdge);
+    
+    if (!success) {
+        // Fallback to full recreation if efficient update failed
+        console.warn('Efficient update failed, falling back to full recreation');
+        const pipeData = prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues);
+        const pipeInstanceData = pipeData.pipeInstanceData;
+
+        // Update the existing pipe instance buffer
+        gl.bindBuffer(gl.ARRAY_BUFFER, pipeInstanceBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, pipeInstanceData, gl.STATIC_DRAW);
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
+    
+    // Update the tracking variable
+    previousSelectedEdge = selectedEdge;
+    
+    console.log('Pipe highlighting updated successfully');
+    
+    // Trigger a re-render to show the color changes
+    renderGraphWithFPS();
+}
+
+// Clear cached data when graph changes (call when loading new file)
+function clearPipeCache() {
+    cachedPipeInstanceData = null;
+    edgeToInstanceMapping.clear();
+    lShapedEdgesCache = null;
+    previousSelectedEdge = -1;
+    console.log('Pipe cache cleared');
 }

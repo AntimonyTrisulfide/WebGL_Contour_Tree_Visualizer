@@ -120,11 +120,6 @@ class MenuSystem {
             'colors.pipeColor', 
             parameterManager.getParameter('colors.pipeColor'));
         
-        // Light Color
-        this.createColorPicker(section, 'Light Color', 
-            'colors.lightColor', 
-            parameterManager.getParameter('colors.lightColor'));
-        
         // Node Colors
         const nodeSection = this.createSubSection('Node Colors', section);
         const nodeColors = parameterManager.getParameter('colors.nodeColors');
