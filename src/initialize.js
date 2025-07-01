@@ -137,6 +137,10 @@ async function initializeGraph(offData) {
     // In initializeGraph function, add this at the beginning:
     intermediatePoints = []; // Clear previous intermediate points
 
+    // Clear pipe cache when loading new graph data
+    if (typeof clearPipeCache !== 'undefined') {
+        clearPipeCache();
+    }
 
     try {
         // Replace the condition check:
@@ -213,8 +217,6 @@ async function initializeGraph(offData) {
                 uProjectionMatrix: gl.getUniformLocation(sphereProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(sphereProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(sphereProgram, "uModelMatrix"),
-                uLightPos: gl.getUniformLocation(sphereProgram, "uLightPos"),
-                uLightColor: gl.getUniformLocation(sphereProgram, "uLightColor"),
                 uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
                 uColorLocation: gl.getUniformLocation(sphereProgram, "uColor"),
                 uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix")
@@ -222,8 +224,6 @@ async function initializeGraph(offData) {
                 uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
-                uLightPos: gl.getUniformLocation(pipeProgram, "uLightPos"),
-                uLightColor: gl.getUniformLocation(pipeProgram, "uLightColor"),
                 uCameraPos: gl.getUniformLocation(pipeProgram, "uCameraPos"),
                 uInvViewMatrix: gl.getUniformLocation(pipeProgram, "uInvViewMatrix")
             };
@@ -293,69 +293,76 @@ async function initializeGraph(offData) {
         // Set up pipe VAO
 
         // In initializeGraph, update the pipe VAO setup
-// In initializeGraph, pipe VAO setup
-if (pipeVAO) gl.deleteVertexArray(pipeVAO);
-pipeVAO = gl.createVertexArray();
-gl.bindVertexArray(pipeVAO);
+    // In initializeGraph, pipe VAO setup
+    if (pipeVAO) gl.deleteVertexArray(pipeVAO);
+    pipeVAO = gl.createVertexArray();
+    gl.bindVertexArray(pipeVAO);
 
-const pipePositionBuffer = gl.createBuffer();
-const pipeInstanceBuffer = gl.createBuffer();
-const pipeIndexBuffer = gl.createBuffer();
+    const pipePositionBuffer = gl.createBuffer();
+    const pipeInstanceBuffer = gl.createBuffer();
+    const pipeIndexBuffer = gl.createBuffer();
 
-// Position buffer
-gl.bindBuffer(gl.ARRAY_BUFFER, pipePositionBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, cuboid.positions, gl.STATIC_DRAW);
-gl.enableVertexAttribArray(attributes.pipe.pipePosLoc);
-gl.vertexAttribPointer(attributes.pipe.pipePosLoc, 3, gl.FLOAT, false, 0, 0);
-gl.vertexAttribDivisor(attributes.pipe.pipePosLoc, 0);
+    // Position buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, pipePositionBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, cuboid.positions, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(attributes.pipe.pipePosLoc);
+    gl.vertexAttribPointer(attributes.pipe.pipePosLoc, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribDivisor(attributes.pipe.pipePosLoc, 0);
 
-// Instance buffer
-gl.bindBuffer(gl.ARRAY_BUFFER, pipeInstanceBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, pipeInstanceData, gl.STATIC_DRAW);
+    // Instance buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, pipeInstanceBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, pipeInstanceData, gl.STATIC_DRAW);
 
-// Instance start position
-gl.enableVertexAttribArray(attributes.pipe.pipeInstStartVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 68, 0);
-gl.vertexAttribDivisor(attributes.pipe.pipeInstStartVertex, 1);
+    // Instance start position
+    gl.enableVertexAttribArray(attributes.pipe.pipeInstStartVertex);
+    gl.vertexAttribPointer(attributes.pipe.pipeInstStartVertex, 3, gl.FLOAT, false, 68, 0);
+    gl.vertexAttribDivisor(attributes.pipe.pipeInstStartVertex, 1);
 
-// Instance end position
-gl.enableVertexAttribArray(attributes.pipe.pipeInstEndVertex);
-gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 68, 12);
-gl.vertexAttribDivisor(attributes.pipe.pipeInstEndVertex, 1);
+    // Instance end position
+    gl.enableVertexAttribArray(attributes.pipe.pipeInstEndVertex);
+    gl.vertexAttribPointer(attributes.pipe.pipeInstEndVertex, 3, gl.FLOAT, false, 68, 12);
+    gl.vertexAttribDivisor(attributes.pipe.pipeInstEndVertex, 1);
 
-// Instance radius
-gl.enableVertexAttribArray(attributes.pipe.pipeInstSizeLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 68, 24);
-gl.vertexAttribDivisor(attributes.pipe.pipeInstSizeLoc, 1);
+    // Instance radius
+    gl.enableVertexAttribArray(attributes.pipe.pipeInstSizeLoc);
+    gl.vertexAttribPointer(attributes.pipe.pipeInstSizeLoc, 1, gl.FLOAT, false, 68, 24);
+    gl.vertexAttribDivisor(attributes.pipe.pipeInstSizeLoc, 1);
 
-// Instance color
-gl.enableVertexAttribArray(attributes.pipe.instColorLoc);
-gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 68, 28);
-gl.vertexAttribDivisor(attributes.pipe.instColorLoc, 1);
+    // Instance color
+    gl.enableVertexAttribArray(attributes.pipe.instColorLoc);
+    gl.vertexAttribPointer(attributes.pipe.instColorLoc, 3, gl.FLOAT, false, 68, 28);
+    gl.vertexAttribDivisor(attributes.pipe.instColorLoc, 1);
 
-// Joint point (L-joint cutting)
-gl.enableVertexAttribArray(attributes.pipe.pipeJointPointLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeJointPointLoc, 3, gl.FLOAT, false, 68, 40);
-gl.vertexAttribDivisor(attributes.pipe.pipeJointPointLoc, 1);
+    // Joint point (L-joint cutting)
+    gl.enableVertexAttribArray(attributes.pipe.pipeJointPointLoc);
+    gl.vertexAttribPointer(attributes.pipe.pipeJointPointLoc, 3, gl.FLOAT, false, 68, 40);
+    gl.vertexAttribDivisor(attributes.pipe.pipeJointPointLoc, 1);
 
-// Cut plane normal (L-joint cutting)
-gl.enableVertexAttribArray(attributes.pipe.pipeCutNormalLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeCutNormalLoc, 3, gl.FLOAT, false, 68, 52);
-gl.vertexAttribDivisor(attributes.pipe.pipeCutNormalLoc, 1);
+    // Cut plane normal (L-joint cutting)
+    gl.enableVertexAttribArray(attributes.pipe.pipeCutNormalLoc);
+    gl.vertexAttribPointer(attributes.pipe.pipeCutNormalLoc, 3, gl.FLOAT, false, 68, 52);
+    gl.vertexAttribDivisor(attributes.pipe.pipeCutNormalLoc, 1);
 
-// Joint type (L-joint cutting)
-gl.enableVertexAttribArray(attributes.pipe.pipeJointTypeLoc);
-gl.vertexAttribPointer(attributes.pipe.pipeJointTypeLoc, 1, gl.FLOAT, false, 68, 64);
-gl.vertexAttribDivisor(attributes.pipe.pipeJointTypeLoc, 1);
+    // Joint type (L-joint cutting)
+    gl.enableVertexAttribArray(attributes.pipe.pipeJointTypeLoc);
+    gl.vertexAttribPointer(attributes.pipe.pipeJointTypeLoc, 1, gl.FLOAT, false, 68, 64);
+    gl.vertexAttribDivisor(attributes.pipe.pipeJointTypeLoc, 1);
 
-// Index buffer
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cuboid.indices, gl.STATIC_DRAW);
+    // Index buffer
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cuboid.indices, gl.STATIC_DRAW);
 
-gl.bindVertexArray(null);
+    gl.bindVertexArray(null);
 
-    // Update max attribute of edge input
-    document.getElementById('edgeSelect').max = edges.length;
+    // Initialize mouse picking system
+    if (typeof initializeMousePicking !== 'undefined') {
+        initializeMousePicking();
+        
+        // Update picking data after graph is loaded
+        if (typeof updatePickingData !== 'undefined') {
+            updatePickingData();
+        }
+    }
 
         // debugUniforms(); // Call the debugging function to check uniform locations
 

@@ -1,8 +1,6 @@
 #version 300 es
 precision highp float;
 
-uniform vec3 uLightPos;
-uniform vec3 uLightColor;
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
@@ -28,14 +26,14 @@ void main() {
     vec3 rayOrigin = vCameraPos;
     vec3 rayDir = normalize(vWorldPos - vCameraPos);
     
-    // Ray-cylinder intersection in world space
+    // ProteinVis-style ray-cylinder intersection
     vec3 oc = rayOrigin - vCylStart;
-    vec3 proj_oc = oc - dot(oc, cylDir) * cylDir;
-    vec3 proj_ray = rayDir - dot(rayDir, cylDir) * cylDir;
+    float rayDotCyl = dot(rayDir, cylDir);
+    float ocDotCyl = dot(oc, cylDir);
     
-    float a = dot(proj_ray, proj_ray);
-    float b = 2.0 * dot(proj_oc, proj_ray);
-    float c = dot(proj_oc, proj_oc) - vRadius * vRadius;
+    float a = dot(rayDir, rayDir) - rayDotCyl * rayDotCyl;
+    float b = 2.0 * (dot(oc, rayDir) - ocDotCyl * rayDotCyl);
+    float c = dot(oc, oc) - ocDotCyl * ocDotCyl - vRadius * vRadius;
     
     float discriminant = b * b - 4.0 * a * c;
     if (discriminant < 0.0) {
@@ -49,7 +47,9 @@ void main() {
     
     if (t <= 0.0) {
         discard;
-    }    // Calculate intersection point
+    }
+    
+    // Calculate intersection point
     vec3 hitPoint = rayOrigin + t * rayDir;
     float distAlongAxis = dot(hitPoint - vCylStart, cylDir);
 
@@ -123,10 +123,9 @@ void main() {
     vec4 clipPos = uProjectionMatrix * vec4(viewSpacePoint, 1.0);
     gl_FragDepth = (clipPos.z / clipPos.w + 1.0) * 0.5;
     
-    // === LIGHTING (ProteinVis style) ===
-    // For camera-attached light, use a fixed offset in view space to create moving specular
-    // This simulates a headlamp slightly above and to the right of the camera
-    vec3 viewLightPos = vec3(1, 4, 5); // Fixed position in view space
+    // === LIGHTING (Camera-based headlamp) ===
+    // Light position offset from camera in view space to avoid centered specular highlight
+    vec3 viewLightPos = vec3(1.0, 4.0, 5.0); // Fixed offset in view space
     
     // Transform normal to view space for lighting calculations
     vec3 viewNormal = normalize((uViewMatrix * uModelMatrix * vec4(cylinderNormal, 0.0)).xyz);
@@ -136,12 +135,17 @@ void main() {
     vec3 viewDir = normalize(-viewSpacePoint); // From surface to camera (origin) in view space
     vec3 halfVector = normalize(lightDir + viewDir);
     
-    // Blinn-Phong lighting with ProteinVis parameters
+    // Blinn-Phong lighting matching sphere shader
     float diffuse = max(0.0, dot(viewNormal, lightDir));
-    float specular = pow(max(0.0, dot(viewNormal, halfVector)), 64.0);
+    float specular = pow(max(0.0, dot(viewNormal, halfVector)), 32.0);
     
-    // ProteinVis lighting formula: ambient(0.2) + diffuse(0.5) + specular(0.3) to match sphere
-    vec3 finalColor = vInstanceColor * (0.25 + 0.5 * diffuse) + vec3(1.0, 1.0, 1.0) * 0.6 * specular;
+    // Consistent lighting formula with sphere shader
+    vec3 baseColor = vInstanceColor;
+    vec3 ambient = baseColor * 0.3;
+    vec3 diffuseColor = baseColor * diffuse * 0.5;
+    vec3 specularColor = vec3(1.0) * specular * 0.6;
+    
+    vec3 finalColor = ambient + diffuseColor + specularColor;
     
     fragColor = vec4(finalColor, 1.0);
 }

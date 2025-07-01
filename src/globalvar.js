@@ -7,6 +7,7 @@
 Issues with the code:
     1. The Overlapping of Spheres and Cylinders is still present.
     2. Issues with anti-aliasing on the cylinders (jagged edges).
+    3. by mapping it is possible for maxima to remain below the saddles (i.e. the saddle maxima arc length is not mapping correctly in some edge cases (Block 1 WRESNET))
 
 New Functionality (to add)
     1. Add selection logic using mouse clicks to select edges and vertices.
@@ -26,6 +27,9 @@ const gl = canvas.getContext("webgl2", {
     stencil: false,
     premultipliedAlpha: false
 });
+
+console.log('Depth bits:', gl.getParameter(gl.DEPTH_BITS));
+
 if (!gl) {
     console.error("WebGL2 not supported");
 }
@@ -38,10 +42,6 @@ let pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
 let backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
-
-// Light position
-let lightPosition = [10, 10, 10]; // Position of the light source in the scene
-let lightColor = [1.0, 1.0, 1.0]; // Color of the light source
 
 // JS Object for point types (assgned each one a unique number)
 const NODE_TYPES = {
@@ -63,7 +63,10 @@ let NODE_COLORS = {
 
 let projectionMatrix, viewMatrix, modelMatrix, invViewMatrix;
 projectionMatrix = mat4.create();
-mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 10000);
+// mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.01, 1000);
+
+// Temporarily use a tighter range to see if the issue persists
+mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
 viewMatrix = mat4.create();
 modelMatrix = mat4.create();
 mat4.identity(modelMatrix);

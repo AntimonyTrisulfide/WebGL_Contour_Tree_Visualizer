@@ -46,8 +46,8 @@ function calculateUpVector() {
 function initializeCamera(vertices) {
     const bbox = calculateBoundingBox(vertices);
     
-    // Set camera target to the center of the bounding box
-    cameraTarget = [...bbox.center];
+    // Set camera target to the origin
+    cameraTarget = [0, 0, 0];
     
     // Set initial camera distance based on the largest dimension
     const maxDimension = Math.max(...bbox.size);

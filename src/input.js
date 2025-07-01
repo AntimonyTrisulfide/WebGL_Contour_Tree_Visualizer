@@ -10,6 +10,9 @@ let isDragging = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 let mouseSensitivity = 0.005; // Sensitivity for mouse movement (will be updated by parameter system)
+let mouseDownX = 0;
+let mouseDownY = 0;
+let hasMoved = false;
 
 
 // File input handler
@@ -44,12 +47,24 @@ canvas.addEventListener('mousedown', (e) => {
     isDragging = true;
     lastMouseX = e.clientX;
     lastMouseY = e.clientY;
+    mouseDownX = e.clientX;
+    mouseDownY = e.clientY;
+    hasMoved = false;
 });
 
 canvas.addEventListener('mousemove', (e) => {
     if (isDragging) {
         const deltaX = e.clientX - lastMouseX;
         const deltaY = e.clientY - lastMouseY;
+        
+        // Check if mouse has moved significantly
+        const moveDistance = Math.sqrt(
+            Math.pow(e.clientX - mouseDownX, 2) + 
+            Math.pow(e.clientY - mouseDownY, 2)
+        );
+        if (moveDistance > 5) { // 5 pixel threshold
+            hasMoved = true;
+        }
         
         // Horizontal mouse movement rotates around Y-axis (theta)
         cameraTheta -= deltaX * mouseSensitivity;
@@ -75,8 +90,15 @@ canvas.addEventListener('mousemove', (e) => {
     }
 });
 
-canvas.addEventListener('mouseup', () => {
+canvas.addEventListener('mouseup', (e) => {
+    if (isDragging && !hasMoved) {
+        // This was a click, not a drag - handle edge selection
+        if (typeof handleMousePick !== 'undefined') {
+            handleMousePick(e.clientX, e.clientY);
+        }
+    }
     isDragging = false;
+    hasMoved = false;
 });
 
 // Zoom with mouse wheel
@@ -105,7 +127,12 @@ window.addEventListener('resize', () => {
     canvas.style.width = displayWidth + 'px';
     canvas.style.height = displayHeight + 'px';
       gl.viewport(0, 0, canvas.width, canvas.height);
-    mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.1, 100);
+    mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 100);
+    
+    // Resize picking framebuffer
+    if (typeof resizePickingFramebuffer !== 'undefined') {
+        resizePickingFramebuffer(canvas.width, canvas.height);
+    }
     
     // Only render if uniforms are properly initialized
     if (pipeUniforms && sphereUniforms) {
@@ -127,25 +154,6 @@ window.addEventListener('keydown', (e) => {
 
 window.addEventListener('keyup', (e) => {
     keyState[e.key.toLowerCase()] = false;
-});
-
-document.getElementById('edgeSelect').addEventListener('input', function () {
-    const edgeNum = parseInt(this.value);
-    if (edgeNum >= 1 && edgeNum <= edges.length) {
-        selectedEdge = edgeNum;
-        showStatus(`Edge ${edgeNum} highlighted`, 'info');
-        initializeGraph(offData);
-        if (pipeUniforms && sphereUniforms) {
-            renderGraph();
-        }
-    } else {
-        selectedEdge = null;
-        showStatus(`Invalid edge number. Please enter a number between 1 and ${edges.length}`, 'error');
-        initializeGraph(offData);
-        if (pipeUniforms && sphereUniforms) {
-            renderGraph();
-        }
-    }
 });
 
 // FPS Toggle Button Handler
@@ -176,6 +184,11 @@ document.getElementById('fpsToggleButton').addEventListener('click', function ()
 });
 
 window.onload = () => {
+    // Initialize edge info panel
+    if (typeof initializeEdgeInfoPanel !== 'undefined') {
+        initializeEdgeInfoPanel();
+    }
+    
     //Load default OFF file if available
     if(offData !== "") {
         initializeGraph(offData);

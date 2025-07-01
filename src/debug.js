@@ -10,8 +10,6 @@ function debugUniforms() {
         uProjectionMatrix: gl.getUniformLocation(sphereProgram, "uProjectionMatrix"),
         uViewMatrix: gl.getUniformLocation(sphereProgram, "uViewMatrix"),
         uModelMatrix: gl.getUniformLocation(sphereProgram, "uModelMatrix"),
-        uLightPos: gl.getUniformLocation(sphereProgram, "uLightPos"),
-        // uViewPos: gl.getUniformLocation(sphereProgram, "uViewPos"),
         uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
         uColorLocation: gl.getUniformLocation(sphereProgram, "uColor")
     };
@@ -21,15 +19,13 @@ function debugUniforms() {
         uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
         uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
         uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
-        uLightPos: gl.getUniformLocation(pipeProgram, "uLightPos"),
         uColor: gl.getUniformLocation(pipeProgram, "uColor"),
         uCameraPosLocationPipe: gl.getUniformLocation(pipeProgram, "uCameraPos")
-        // Removed uViewPos since we're using uCameraPos directly in renderGraph
     };
 
     // Check if all expected uniforms exist
-    const expectedSphereUniforms = ["uProjectionMatrix", "uViewMatrix", "uModelMatrix", "uLightPos", "uCameraPos", "uColor"];
-    const expectedPipeUniforms = ["uProjectionMatrix", "uViewMatrix", "uModelMatrix", "uLightPos", "uColor", "uCameraPos"];
+    const expectedSphereUniforms = ["uProjectionMatrix", "uViewMatrix", "uModelMatrix", "uCameraPos", "uColor"];
+    const expectedPipeUniforms = ["uProjectionMatrix", "uViewMatrix", "uModelMatrix", "uColor", "uCameraPos"];
     
     expectedSphereUniforms.forEach(uniform => {
         if (sphereUniforms[uniform] === null || sphereUniforms[uniform] === undefined) {

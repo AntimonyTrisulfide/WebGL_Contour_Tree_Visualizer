@@ -32,16 +32,12 @@ class ParameterManager {
             },
             colors: {
                 pipeColor: [0.8, 0.8, 0.8],
-                lightColor: [1.0, 1.0, 1.0],
                 nodeColors: {
                     minimum: [0.0, 0.4, 1.0],
                     saddle: [0.0, 1.0, 1.0],
                     maximum: [1.0, 0.0, 0.0],
                     intermediate: [0.8, 0.8, 0.8]
                 }
-            },
-            lighting: {
-                lightPosition: [10, 10, 10]
             },
             controls: {
                 mouseSensitivity: 0.005
@@ -69,16 +65,7 @@ class ParameterManager {
             pipeColor[1] = this.parameters.colors.pipeColor[1];
             pipeColor[2] = this.parameters.colors.pipeColor[2];
         }
-        if (typeof lightColor !== 'undefined') {
-            lightColor[0] = this.parameters.colors.lightColor[0];
-            lightColor[1] = this.parameters.colors.lightColor[1];
-            lightColor[2] = this.parameters.colors.lightColor[2];
-        }
-        if (typeof lightPosition !== 'undefined') {
-            lightPosition[0] = this.parameters.lighting.lightPosition[0];
-            lightPosition[1] = this.parameters.lighting.lightPosition[1];
-            lightPosition[2] = this.parameters.lighting.lightPosition[2];
-        }        if (typeof mouseSensitivity !== 'undefined' && window) {
+        if (typeof mouseSensitivity !== 'undefined' && window) {
             mouseSensitivity = this.parameters.controls.mouseSensitivity;
         }
 
