@@ -159,16 +159,21 @@ async function initializeGraph(offData) {
             vertexTypes = parsedData.vertexTypes // Now we have new column for vertex types
             vertexValues = parsedData.vertexValues; // Function values for each vertex
 
-            // Calculate graph center
-            const minX = Math.min(...vertices.map(v => v[0]));
-            const maxX = Math.max(...vertices.map(v => v[0]));
-            const minY = Math.min(...vertices.map(v => v[1]));
-            const maxY = Math.max(...vertices.map(v => v[1]));
-            const minZ = Math.min(...vertices.map(v => v[2]));
-            const maxZ = Math.max(...vertices.map(v => v[2]));
+            // Initialize camera with proper bounding box calculation
+            if (typeof initializeCamera === 'function') {
+                initializeCamera(vertices);
+            } else {
+                // Fallback: manual camera distance calculation
+                const minX = Math.min(...vertices.map(v => v[0]));
+                const maxX = Math.max(...vertices.map(v => v[0]));
+                const minY = Math.min(...vertices.map(v => v[1]));
+                const maxY = Math.max(...vertices.map(v => v[1]));
+                const minZ = Math.min(...vertices.map(v => v[2]));
+                const maxZ = Math.max(...vertices.map(v => v[2]));
 
-            const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
-            cameraDistance = Math.max(15, maxDim * 1.5);
+                const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
+                cameraDistance = Math.max(15, maxDim * 1.5);
+            }
 
             // Update Count
             verticesCount = vertices.length;
@@ -197,10 +202,9 @@ async function initializeGraph(offData) {
             counts[type]++;
         });
 
-        showStatus(`Loaded graph: ${verticesCount} vertices, 
+        console.log(`[SUCCESS] Loaded graph: ${verticesCount} vertices, 
             ${edgesCount} L-shaped edges | Minima: ${counts[NODE_TYPES.MINIMUM]}, 
-            Saddles: ${counts[NODE_TYPES.SADDLE]}, Maxima: ${counts[NODE_TYPES.MAXIMUM]}`, 
-            'success'
+            Saddles: ${counts[NODE_TYPES.SADDLE]}, Maxima: ${counts[NODE_TYPES.MAXIMUM]}`
         );
 
         
@@ -219,13 +223,21 @@ async function initializeGraph(offData) {
                 uModelMatrix: gl.getUniformLocation(sphereProgram, "uModelMatrix"),
                 uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
                 uColorLocation: gl.getUniformLocation(sphereProgram, "uColor"),
-                uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix")
+                uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix"),
+                uLight1Dir: gl.getUniformLocation(sphereProgram, "uLight1Dir"),
+                uLight1Color: gl.getUniformLocation(sphereProgram, "uLight1Color"),
+                uLight2Dir: gl.getUniformLocation(sphereProgram, "uLight2Dir"),
+                uLight2Color: gl.getUniformLocation(sphereProgram, "uLight2Color")
             };            gl.useProgram(pipeProgram);            pipeUniforms = {
                 uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
                 uCameraPos: gl.getUniformLocation(pipeProgram, "uCameraPos"),
-                uInvViewMatrix: gl.getUniformLocation(pipeProgram, "uInvViewMatrix")
+                uInvViewMatrix: gl.getUniformLocation(pipeProgram, "uInvViewMatrix"),
+                uLight1Dir: gl.getUniformLocation(pipeProgram, "uLight1Dir"),
+                uLight1Color: gl.getUniformLocation(pipeProgram, "uLight1Color"),
+                uLight2Dir: gl.getUniformLocation(pipeProgram, "uLight2Dir"),
+                uLight2Color: gl.getUniformLocation(pipeProgram, "uLight2Color")
             };
         }
 
@@ -299,7 +311,7 @@ async function initializeGraph(offData) {
     gl.bindVertexArray(pipeVAO);
 
     const pipePositionBuffer = gl.createBuffer();
-    const pipeInstanceBuffer = gl.createBuffer();
+    pipeInstanceBuffer = gl.createBuffer(); // Use global variable
     const pipeIndexBuffer = gl.createBuffer();
 
     // Position buffer
@@ -370,7 +382,7 @@ async function initializeGraph(offData) {
 
     } catch (error) {
         if(offData !== ""){
-            showStatus(`Error loading graph: ${error.message}`, 'error');
+            console.log(`[ERROR] Error loading graph: ${error.message}`);
             console.error("Graph initialization error:", error);
         }
     }

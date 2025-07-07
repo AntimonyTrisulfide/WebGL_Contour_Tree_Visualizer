@@ -44,6 +44,7 @@ function toggleEdgeInfoPanel() {
 // Show the edge information panel
 function showEdgeInfoPanel() {
     edgeInfoPanel.classList.remove('hidden');
+    edgeInfoPanel.classList.remove('collapsed');
 }
 
 // Hide the edge information panel
@@ -65,11 +66,15 @@ function getVertexTypeString(type) {
 // Update the edge information display
 function updateEdgeInfo(edgeIndex) {
     try {
+        console.log('updateEdgeInfo called with edge index:', edgeIndex);
+        
         if (!edgeIndex || !edges || edgeIndex < 1 || edgeIndex > edges.length) {
             console.log('Invalid edge index or edges not available');
             hideEdgeInfoPanel();
             return;
         }
+        
+        console.log('Updating edge info for edge:', edgeIndex);
         
         // Get the original edge (1-based to 0-based conversion)
         const edge = edges[edgeIndex - 1];
@@ -109,7 +114,7 @@ function updateEdgeInfo(edgeIndex) {
         // Show the panel
         showEdgeInfoPanel();
         
-        console.log(`Edge info updated for edge ${edgeIndex}: ${fromVertexIndex} -> ${toVertexIndex}`);
+        console.log(`Edge info updated and panel shown for edge ${edgeIndex}: ${fromVertexIndex} -> ${toVertexIndex}`);
     } catch (error) {
         console.error('Error updating edge info:', error);
         hideEdgeInfoPanel();

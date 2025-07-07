@@ -41,14 +41,7 @@ function debugUniforms() {
 }
 
 
+// showStatus function replaced with console logging
 function showStatus(message, type) {
-    const statusDiv = document.getElementById('status');
-    statusDiv.textContent = message;
-    statusDiv.className = `status ${type}`;
-    statusDiv.style.display = 'block';
-    
-    // Time out to hide the messages (delay in ms)
-    // setTimeout(() => {
-    //     statusDiv.style.display = 'none';
-    // }, 5000);
+    console.log(`[${type ? type.toUpperCase() : 'INFO'}] ${message}`);
 }

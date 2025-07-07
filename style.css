@@ -29,7 +29,7 @@ canvas {
 }
 
 .parameterSliderLabel {
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     font-size: 14px;
     margin-right: 10px;
 }
@@ -53,7 +53,7 @@ canvas {
 
 .file-input-label {
     background: #4CAF50;
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     padding: 10px 20px;
     border-radius: 5px;
     cursor: pointer;
@@ -68,7 +68,7 @@ canvas {
 
 .reset-button {
     background: #2196F3;
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     padding: 10px 20px;
     border: none;
     border-radius: 5px;
@@ -81,11 +81,27 @@ canvas {
     background: #1976D2;
 }
 
+.demo-button {
+    background: #FF9800;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s;
+    margin-left: 10px;
+}
+
+.demo-button:hover {
+    background: #F57C00;
+}
+
 .instructions {
     position: absolute;
     top: 20px;
     right: 20px;
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     padding: 15px;
     border-radius: 8px;
     font-size: 12px;
@@ -113,7 +129,7 @@ canvas {
     left: 20px;
     padding: 10px 20px;
     border-radius: 5px;
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     font-size: 14px;
     z-index: 100;
     display: none;
@@ -140,7 +156,7 @@ canvas {
 
 .fps-button {
     background: #FF5722;
-    color: rgb(0, 0, 0);
+    color: rgb(255, 255, 255);
     padding: 8px 16px;
     border: none;
     border-radius: 5px;
@@ -165,7 +181,7 @@ canvas {
     color: #4CAF50;
     font-size: 14px;
     font-weight: bold;
-    background: rgba(0, 0, 0, 0.7);
+    background: rgb(255, 255, 255);
     padding: 5px 10px;
     border-radius: 3px;
     min-width: 60px;
@@ -707,6 +723,210 @@ canvas {
     display: none;
 }
 
+/* Multiple Edge Information Panel Styles */
+.multiple-edge-info-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #673AB7;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 200;
+    min-width: 400px;
+    max-width: 500px;
+    max-height: 70vh;
+    overflow-y: auto;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    font-family: Arial, sans-serif;
+}
+
+.multiple-edge-info-panel.collapsed .multiple-edge-info-content {
+    display: none;
+}
+
+.multiple-edge-info-panel.hidden {
+    display: none;
+}
+
+.multiple-edge-info-header {
+    background: #673AB7;
+    color: white;
+    padding: 12px 15px;
+    border-radius: 6px 6px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.multiple-edge-info-header:hover {
+    background: #5E35B1;
+}
+
+.multiple-edge-info-title {
+    font-weight: bold;
+    font-size: 14px;
+    flex: 1;
+}
+
+.multiple-edge-info-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px;
+    transition: transform 0.3s ease;
+}
+
+.multiple-edge-info-content {
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 0 0 6px 6px;
+}
+
+.edge-selection-controls {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.edge-control-btn {
+    background: #673AB7;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: background-color 0.3s;
+}
+
+.edge-control-btn:hover {
+    background: #5E35B1;
+}
+
+.edges-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edge-tab {
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    background: white;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.edge-tab:hover {
+    border-color: #673AB7;
+    box-shadow: 0 2px 4px rgba(103, 58, 183, 0.1);
+}
+
+.edge-tab-header {
+    background: #f5f5f5;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    user-select: none;
+    position: relative;
+}
+
+.edge-tab-header:hover {
+    background: #eeeeee;
+}
+
+.edge-tab-title {
+    font-weight: bold;
+    color: #673AB7;
+    font-size: 14px;
+}
+
+.edge-tab-summary {
+    font-size: 12px;
+    color: #666;
+    margin-left: 10px;
+    flex: 1;
+}
+
+.edge-tab-toggle {
+    background: none;
+    border: none;
+    color: #673AB7;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 2px 6px;
+    transition: transform 0.3s ease;
+}
+
+.edge-tab-remove {
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    transition: background-color 0.3s;
+}
+
+.edge-tab-remove:hover {
+    background: #d32f2f;
+}
+
+.edge-tab-content {
+    padding: 12px;
+    background: #fafafa;
+    border-top: 1px solid #e0e0e0;
+}
+
+.edge-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.edge-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 4px 0;
+}
+
+.edge-info-label {
+    font-weight: 600;
+    color: #673AB7;
+    min-width: 90px;
+    font-size: 12px;
+}
+
+.edge-info-value {
+    color: #555;
+    font-size: 12px;
+    font-family: monospace;
+    text-align: right;
+    flex: 1;
+    margin-left: 10px;
+    word-break: break-all;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
     .settings-sidebar {
@@ -742,6 +962,36 @@ canvas {
         right: 10px;
         min-width: auto;
         max-width: none;
+    }
+
+    .multiple-edge-info-panel {
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+        max-width: none;
+        max-height: 60vh;
+    }
+    
+    .edge-tab-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+    
+    .edge-tab-summary {
+        margin-left: 0;
+    }
+    
+    .edge-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .edge-info-value {
+        text-align: left;
+        margin-left: 0;
+        margin-top: 2px;
     }
 }
 

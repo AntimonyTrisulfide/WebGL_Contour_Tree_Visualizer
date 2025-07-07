@@ -10,7 +10,6 @@ Issues with the code:
     3. by mapping it is possible for maxima to remain below the saddles (i.e. the saddle maxima arc length is not mapping correctly in some edge cases (Block 1 WRESNET))
 
 New Functionality (to add)
-    1. Add selection logic using mouse clicks to select edges and vertices.
     2. Use UBO instead of uniforms separately for each object.
     3. Add 
 
@@ -41,7 +40,7 @@ let pipeRadius = 0.005; // Default radius of the pipes
 let pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
-let backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
+let backgroundColor = [0.4, 0.4, 0.4, 1.0]; // Light grey background instead of black
 
 // JS Object for point types (assgned each one a unique number)
 const NODE_TYPES = {
@@ -87,6 +86,31 @@ let fpsCounter = {
     lastFpsUpdate: 0
 };
 let isAnimating = false; // Track if we're in continuous rendering mode
+
+// Multiple edge selection support
+let selectedEdges = []; // Array to store multiple selected edge IDs
+let edgeId = []; // Legacy compatibility array - mirrors selectedEdges for integration
+
+// Helper function to synchronize edgeId array with selectedEdges for integration compatibility
+function syncEdgeIdArray() {
+    window.edgeId = [...window.selectedEdges];
+    console.log(`[INFO] edgeId array synchronized: [${window.edgeId.join(', ')}]`);
+}
+
+// Make sync function globally accessible
+window.syncEdgeIdArray = syncEdgeIdArray;
+
+// Make selectedEdges and edgeId globally accessible
+window.selectedEdges = selectedEdges;
+window.edgeId = edgeId;
+
+// Initialize edgeId array synchronization on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure initial synchronization
+    if (typeof window.syncEdgeIdArray === 'function') {
+        window.syncEdgeIdArray();
+    }
+});
 
 
 

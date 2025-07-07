@@ -12,8 +12,8 @@
         window.vec4 = glMatrix.vec4;
         window.mat3 = glMatrix.mat3;
     </script>
-    <script src="src/parameterManager.js"></script>
-    <script src="src/globalvar.js" defer></script>
+    <!-- Inclusion of Scripts in specific order -->
+    <script src="src/globalvar.js" defer></script> 
     <script src="src/offParser.js"></script>
     <script src="src/primitives.js"></script>
     <script src="src/camera.js"></script>
@@ -21,12 +21,297 @@
     <script src="src/renderer.js"></script>
     <script src="src/mousePicking.js"></script>
     <script src="src/edgeInfo.js"></script>
+    <script src="src/multipleEdgeInfo.js"></script>
+    <script src="src/visualizerAPI.js"></script>
     <script src="src/input.js" defer></script>
     <script src="src/debug.js"></script>
-    <script src="src/menu.js" defer></script>
     <script>
         // Clear the Console first
         console.clear();
+        
+        /*
+         * ===== CONTOUR TREE VISUALIZER API DEMONSTRATION =====
+         * 
+         * This file demonstrates the portability of the Contour Tree Visualizer API
+         * by separating parsing from visualization:
+         * 
+         * 1. PURE PARSING: A standalone parseOFFOnly() function that only parses
+         *    OFF file data without any visualization dependencies
+         * 
+         * 2. API USAGE: The parsed data is then passed to the visualization API
+         *    (invokeContourTreeVisualizer) which handles all visualization logic
+         * 
+         * 3. PORTABILITY: This shows that any system can parse data in their own way
+         *    and use our API for visualization, promoting code reusability
+         * 
+         * 4. TESTING: The demonstration includes edge selection to show full API capability
+         * 
+         * Benefits:
+         * - Current Parsing logic is reusable across different projects using OFF (Object File Format for Inputs)
+         * - API can accept data from any source (not just OFF files), just the parser is to be changed
+         * - Clear separation of concerns
+         * - Easy to test and maintain
+         */
+        
+        // ===== PURE PARSING FUNCTION =====
+        // Extracted from offParser.js for portability testing
+        // This function demonstrates how parsing can be separated from visualization
+        // and used independently by any system that needs to parse OFF files
+
+        // Example OFF Format
+        // OFF
+        // 4 3 0
+        // 0.0 0.0 0.0
+        // 1.0 0.0 0.0
+        // 0.0 1.0 0.0
+        // 0.0 0.0 1.0
+        // 2 0 1 0.0 0.5 MINIMUM SADDLE --> Connects vertex 0 to 1
+        // 2 1 2 0.5 1.0 SADDLE MAXIMUM
+        // 2 2 3 1.0 0.2 MAXIMUM MINIMUM
+
+        function parseOFFOnly(data) {
+            const lines = data.trim().split('\n').map(line => line.trim());
+            
+            // Skip the OFF header
+            let currentLine = 1;
+            
+            // Parse counts (vertices, faces, edges)
+            const counts = lines[currentLine].split(/\s+/).map(Number);
+            const numVertices = counts[0];
+            const numFaces = counts[1];
+            currentLine++;
+            
+            // Parse vertices (only coordinates now)
+            // Each line is a vertex (X Y Z 32 bit float values)
+            let vertices = [];
+            
+            for (let i = 0; i < numVertices; i++) {
+                const parts = lines[currentLine].split(/\s+/);
+                
+                // Extract coordinates (first 3 values)
+                const coords = [
+                    parseFloat(parts[0]),
+                    parseFloat(parts[1]),
+                    parseFloat(parts[2])
+                ];
+                
+                vertices.push(coords);
+                currentLine++;
+            }
+            
+            // Initialize arrays for vertex data (Attributes assigned to each vertex)
+            const vertexValues = new Array(numVertices);
+            const vertexTypes = new Array(numVertices);
+            
+            // Parse edges and extract vertex data (get Vertex Connection pair and the types and function values)
+            const edges = [];
+            for (let i = 0; i < numFaces; i++) {
+                // Format 2 v1 v2 val1 val2 type1 type2
+                const parts = lines[currentLine].split(/\s+/);
+                if (parts.length < 7 || parts[0] !== '2') {
+                    console.warn(`Skipping malformed or unsupported edge line: ${lines[currentLine]}`);
+                    currentLine++;
+                    continue;
+                }
+
+                const v1 = parseInt(parts[1]);
+                const v2 = parseInt(parts[2]);
+                const val1 = parseFloat(parts[3]);
+                const val2 = parseFloat(parts[4]);
+                const type1 = mapNodeType(parts[5]);
+                const type2 = mapNodeType(parts[6]);
+
+                // Assign vertex 1 value
+                if (vertexValues[v1] === undefined) {
+                    vertexValues[v1] = val1;
+                    vertexTypes[v1] = type1;
+                }
+
+                // Assign vertex 2 value
+                if (vertexValues[v2] === undefined) {
+                    vertexValues[v2] = val2;
+                    vertexTypes[v2] = type2;
+                }
+
+                edges.push([v1, v2]);
+                currentLine++;
+            }
+            
+            // Fill any missing vertex data with defaults
+            for (let i = 0; i < numVertices; i++) {
+                if (vertexValues[i] === undefined) {
+                    vertexValues[i] = 0.0;
+                    vertexTypes[i] = 'SADDLE';
+                    console.warn(`Missing data for vertex ${i}, using defaults`);
+                }
+            }
+            
+            // Return the parsed tree data (required for construction)
+            return { 
+                vertices, 
+                edges, 
+                vertexValues, 
+                vertexTypes 
+            };
+        }
+        
+        // Node type mapping function (extracted from offParser.js)
+        function mapNodeType(typeString) {
+            switch (typeString) {
+                case 'MINIMUM':
+                case 'MIN':
+                    return NODE_TYPES.MINIMUM;
+                case 'MAXIMUM':
+                case 'MAX':
+                    return NODE_TYPES.MAXIMUM;
+                case 'SADDLE':
+                case 'SAD':
+                    return NODE_TYPES.SADDLE;
+                default:
+                    return NODE_TYPES.SADDLE;
+            }
+        }
+        
+        // ===== MODIFIED FILE LOADING WITH API DEMONSTRATION =====
+        // Override the file input handler to demonstrate API portability
+        // Status messages are now logged to console only
+        
+        // Main event listener for file input and block that will invoke the API (only fired when DOM is ready)
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput) {
+                // Remove existing event listeners
+                fileInput.removeEventListener('change', fileInput.onchange);
+                
+                // Add new event listener that demonstrates API usage through OFF Input
+                fileInput.addEventListener('change', function() {
+                    const file = this.files[0];
+                    if (!file) {
+                        return;
+                    }
+                    
+                    if (!file.name.toLowerCase().endsWith('.off')) {
+                        console.log('[ERROR] Please select a .off file');
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        // Set global offData variable
+                        offData = e.target.result;
+                        
+                        console.log('=== DEMONSTRATION OF API PORTABILITY ===');
+                        console.log('This demonstrates separating parsing from visualization:');
+                        console.log('1. First we parse the OFF file using a pure parsing function');
+                        console.log('2. Then we call the API with the parsed data to generate the visualization');
+                        console.log('3. This shows the API can work with any parsed tree data, not just from OFF files');
+                        console.log('');
+                        console.log('Step 1: Parse OFF file using pure parsing function');
+                        
+                        // Show progress in console
+                        console.log('[INFO] Step 1: Parsing OFF file data...');
+                        
+                        // Step 1: Parse the OFF file using the pure parsing function
+                        const parsedTreeData = parseOFFData(offData);
+                        
+                        console.log('Parsed tree data:', parsedTreeData);
+                        console.log(`Found ${parsedTreeData.vertices.length} vertices, ${parsedTreeData.edges.length} edges`);
+                        
+                        // Count node types
+                        const typeCounts = {};
+                        parsedTreeData.vertexTypes.forEach(type => {
+                            typeCounts[type] = (typeCounts[type] || 0) + 1;
+                        });
+                        console.log('Node type distribution:', typeCounts);
+                        
+                        // Show parsing success
+                        console.log(`[SUCCESS] Parsing complete: ${parsedTreeData.vertices.length} vertices, ${parsedTreeData.edges.length} edges`);
+                        
+                        // Step 2: Configure API parameters
+                        console.log('');
+                        console.log('Step 2: Configure API parameters (lights, colors, global vars)');
+                        console.log('[INFO] Step 2: Configuring API parameters...');
+                        
+                        // Object for Light Directions and Colors
+                        const lightConfig = {
+                            directions: {
+                                key: [0.5, 0.3, 0.8],      // Improved directional lighting  
+                                fill: [-0.3, -0.4, 0.85],  // Balanced fill light
+                                back: [0.0, 0.0, 1.0]      // Unused in current setup
+                            },
+                            colors: {
+                                key: [1.0, 0.9, 0.7],      // Warm golden light
+                                fill: [0.7, 0.8, 1.0],     // Cool blue light
+                                back: [0.3, 0.3, 0.3]      // Unused in current setup
+                            }
+                        };
+                        
+                        // Object for Node Colors, Pipe Color, and Background Color
+                        const colors = {
+                            nodeColors: {
+                                [NODE_TYPES.MINIMUM]: [0.000, 0.000, 1.000, 1.0],   // Blue
+                                [NODE_TYPES.SADDLE]: [0.000, 1.000, 1.000, 1.0],    // Cyan
+                                [NODE_TYPES.MAXIMUM]: [1.000, 0.000, 0.000, 1.0]    // Red
+                            },
+                            pipeColor: [0.9, 0.9, 0.9, 1.0],
+                            backgroundColor: [0.1, 0.1, 0.1, 1.0]
+                        };
+
+                        // Object for primitives size variables
+                        const globalVars = {
+                            sphereRadius: 0.3,
+                            pipeRadius: 0.05
+                        };
+                        
+                        // Step 3: Use the API to visualize the parsed data
+                        console.log('');
+                        console.log('Step 3: Call API with parsed data to demonstrate portability');
+                        console.log('This shows that any system can parse data and use our API for visualization');
+                        console.log('[INFO] Step 3: Calling visualization API...');
+                        
+                        // Set global variables needed by the visualization
+                        currentFileName = file.name;
+                        document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F';
+                        
+                        // Update file name in sidebar if menu system is available
+                        if (typeof menuSystem !== 'undefined' && menuSystem.updateOnFileLoad) {
+                            menuSystem.updateOnFileLoad(file.name, parsedTreeData.vertices.length, parsedTreeData.edges.length);
+                        } else if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
+                            menuSystem.updateCurrentFileName(file.name);
+                        }
+                        
+                        // Call the API with parsed data
+                        console.log('Calling invokeContourTreeVisualizer API...');
+                        
+                        // Check if the API function exists
+                        if (typeof invokeContourTreeVisualizer === 'function') {
+                            const result = invokeContourTreeVisualizer(
+                                parsedTreeData, 
+                                lightConfig, 
+                                colors, 
+                                globalVars,
+                                [] // No edges initially selected
+                            );
+                            
+                            console.log('API call result:', result);
+                            if (result.success) {
+                                console.log(`[SUCCESS] API SUCCESS: ${result.message}`);
+                            } else {
+                                console.log(`[ERROR] API ERROR: ${result.message}`);
+                            }
+                        } else {
+                            console.error('invokeContourTreeVisualizer API not available!');
+                            console.log('[ERROR] API not available - cannot proceed without API');
+                            return;
+                        }
+                        
+                        console.log('=== API DEMONSTRATION COMPLETE ===');
+                    };
+                    
+                    reader.readAsText(file);
+                });
+            }
+        });
     </script>
 </head>
 <body>    <div class="controls">
@@ -38,17 +323,21 @@
             <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
             <div id="fpsDisplay" class="fps-display">FPS: --</div>
         </div>
-        <!-- Menu toggle will be added here by menu.js -->
+        <button id="clearSelectionButton" class="reset-button" onclick="clearEdgeSelection()">Clear Selection</button>
     </div>
     
     <div class="instructions">
         <h3>Controls:</h3>
         <ul>
-            <li><strong>Mouse drag:</strong> Rotate camera</li>
-            <li><strong>Mouse click:</strong> Select/deselect edges</li>
-            <!-- <li><strong>Shift + Mouse Drag:</strong> Translate/pan view</li> -->
-            <li><strong>Mouse wheel:</strong> Zoom in/out</li>
-            <!-- <li><strong>Reset button (Ctrl):</strong> Return to center</li> -->
+            <li><strong>Left Mouse Drag:</strong> Rotate camera</li>
+            <li><strong>Mouse Click:</strong> Select/deselect edges</li>
+            <li><strong>Ctrl + Mouse Click:</strong> Multi-select edges</li>
+            <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+            <li><strong>W/S:</strong> Zoom in/out (keyboard)</li>
+            <li><strong>T/G:</strong> Pan camera target up/down</li>
+            <li><strong>R:</strong> Reset camera (position and rotation)</li>
+            <li><strong>X:</strong> Reset camera target only</li>
+            <li><strong>P:</strong> Toggle edge spacing</li>
         </ul>
     </div>    <!-- Edge Information Window -->
     <div id="edgeInfoPanel" class="edge-info-panel collapsed">
@@ -84,7 +373,6 @@
         </div>
     </div>
 
-    <div id="status" class="status"></div>
     <canvas id="canvas"></canvas>
     <script>
         const _c = document.getElementsByTagName('canvas')[0];

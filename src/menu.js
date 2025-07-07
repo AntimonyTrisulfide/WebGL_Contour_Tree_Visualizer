@@ -1,551 +1,592 @@
 // src/menu.js
+// Menu system for the Contour Tree Visualizer - API-driven architecture
+
+/**
+ * Menu system for the contour tree visualizer
+ * All UI interactions are routed through the visualizer API
+ */
 
 class MenuSystem {
     constructor() {
-        this.isSidebarOpen = false;
-        this.sidebarElement = null;
-        this.menuToggle = null;
-        this.collapsedSections = new Set(); // Track collapsed sections
-        this.initializeMenu();
-        this.setupEventListeners();
-    }
-
-    initializeMenu() {
-        this.createMenuToggle();
-        this.createSidebar();
-        this.populateMenu();
-    }    createMenuToggle() {
-        // Create menu toggle button with arrow
-        this.menuToggle = document.createElement('button');
-        this.menuToggle.id = 'menu-toggle';
-        this.menuToggle.className = 'menu-toggle';
-        this.menuToggle.innerHTML = '◀'; // Left-pointing arrow
-        this.menuToggle.title = 'Toggle Settings Panel';
+        this.isInitialized = false;
+        this.currentFileName = '';
+        this.isOpen = false;
+        this.sectionStates = {};
         
-        // Append directly to body instead of controls
-        document.body.appendChild(this.menuToggle);
-    }
-
-    createSidebar() {
-        // Create sidebar panel
-        this.sidebarElement = document.createElement('div');
-        this.sidebarElement.id = 'settings-sidebar';
-        this.sidebarElement.className = 'settings-sidebar';
-        
-        // Sidebar header
-        const header = document.createElement('div');
-        header.className = 'sidebar-header';
-        header.innerHTML = `
-            <h2>Settings</h2>
-            <button id="sidebar-close" class="sidebar-close">&times;</button>
-        `;
-        
-        // Sidebar content
-        const content = document.createElement('div');
-        content.className = 'sidebar-content';
-        content.id = 'sidebar-content';
-        
-        // Sidebar footer
-        const footer = document.createElement('div');
-        footer.className = 'menu-footer';
-        footer.innerHTML = `
-            <button id="reset-defaults" class="menu-button secondary">Reset</button>
-            <button id="save-config" class="menu-button primary">Save</button>
-        `;
-        
-        this.sidebarElement.appendChild(header);
-        this.sidebarElement.appendChild(content);
-        this.sidebarElement.appendChild(footer);
-        document.body.appendChild(this.sidebarElement);
-    }    populateMenu() {
-        const content = document.getElementById('sidebar-content');
-        content.innerHTML = ''; // Clear existing content
-        
-        // Wait for parameters to load
-        parameterManager.loadPromise.then(() => {
-            this.createFileInfoSection(content);
-            this.createRenderingSection(content);
-            this.createColorSection(content);
-            this.createLightingSection(content);
-            this.createControlsSection(content);
-            this.createLogSection(content);
-            
-            // Update file name if available
-            if (typeof currentFileName !== 'undefined' && currentFileName) {
-                this.updateCurrentFileName(currentFileName);
-            }
-        });
-    }
-
-    createFileInfoSection(parent) {
-        const section = this.createSection('File Information', parent);
-        
-        // Current file display
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'file-info';
-        fileInfo.innerHTML = `
-            <div class="info-item">
-                <span class="info-label">Current File:</span>
-                <span class="info-value" id="current-file-name">No file loaded</span>
-            </div>
-        `;
-        
-        section.appendChild(fileInfo);
-    }
-
-    createRenderingSection(parent) {
-        const section = this.createSection('Rendering', parent);
-        
-        // Sphere Radius
-        this.createSlider(section, 'Sphere Radius', 
-            'rendering.sphereRadius', 0.001, 0.5, 0.001, 
-            parameterManager.getParameter('rendering.sphereRadius'));
-        
-        // Pipe Radius
-        this.createSlider(section, 'Pipe Radius', 
-            'rendering.pipeRadius', 0.001, 0.3, 0.001, 
-            parameterManager.getParameter('rendering.pipeRadius'));
-        
-        // Background Color
-        this.createColorPicker(section, 'Background Color', 
-            'rendering.backgroundColor', 
-            parameterManager.getParameter('rendering.backgroundColor'));
-    }
-
-    createColorSection(parent) {
-        const section = this.createSection('Colors', parent);
-        
-        // Pipe Color
-        this.createColorPicker(section, 'Pipe Color', 
-            'colors.pipeColor', 
-            parameterManager.getParameter('colors.pipeColor'));
-        
-        // Node Colors
-        const nodeSection = this.createSubSection('Node Colors', section);
-        const nodeColors = parameterManager.getParameter('colors.nodeColors');
-        
-        this.createColorPicker(nodeSection, 'Minimum Nodes', 
-            'colors.nodeColors.minimum', nodeColors.minimum);
-        this.createColorPicker(nodeSection, 'Saddle Nodes', 
-            'colors.nodeColors.saddle', nodeColors.saddle);
-        this.createColorPicker(nodeSection, 'Maximum Nodes', 
-            'colors.nodeColors.maximum', nodeColors.maximum);
-        this.createColorPicker(nodeSection, 'Intermediate Nodes', 
-            'colors.nodeColors.intermediate', nodeColors.intermediate);
-    }
-
-    createLightingSection(parent) {
-        const section = this.createSection('Lighting', parent);
-        
-        const lightPos = parameterManager.getParameter('lighting.lightPosition');
-        
-        // Light Position X
-        this.createSlider(section, 'Light X Position', 
-            'lighting.lightPosition.0', -50, 50, 0.1, lightPos[0]);
-        
-        // Light Position Y
-        this.createSlider(section, 'Light Y Position', 
-            'lighting.lightPosition.1', -50, 50, 0.1, lightPos[1]);
-        
-        // Light Position Z
-        this.createSlider(section, 'Light Z Position', 
-            'lighting.lightPosition.2', -50, 50, 0.1, lightPos[2]);
-    }
-
-    createControlsSection(parent) {
-        const section = this.createSection('Controls', parent);
-        
-        // Mouse Sensitivity
-        this.createSlider(section, 'Mouse Sensitivity', 
-            'controls.mouseSensitivity', 0.001, 0.02, 0.001, 
-            parameterManager.getParameter('controls.mouseSensitivity'));
-    }    createSection(title, parent) {
-        const section = document.createElement('div');
-        section.className = 'menu-section';
-        
-        const header = document.createElement('div');
-        header.className = 'section-header';
-        header.textContent = title;
-        header.setAttribute('data-section', title.toLowerCase());
-        
-        const content = document.createElement('div');
-        content.className = 'section-content';
-        content.setAttribute('data-section-content', title.toLowerCase());
-        
-        // Add click handler for collapsible sections
-        header.addEventListener('click', () => {
-            this.toggleSection(title.toLowerCase(), header, content);
-        });
-        
-        section.appendChild(header);
-        section.appendChild(content);
-        parent.appendChild(section);
-        
-        return content;
-    }
-
-    toggleSection(sectionName, header, content) {
-        const isCollapsed = this.collapsedSections.has(sectionName);
-        
-        if (isCollapsed) {
-            this.collapsedSections.delete(sectionName);
-            header.classList.remove('collapsed');
-            content.classList.remove('collapsed');
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.initialize());
         } else {
-            this.collapsedSections.add(sectionName);
-            header.classList.add('collapsed');
-            content.classList.add('collapsed');
+            this.initialize();
         }
     }
 
-    createSubSection(title, parent) {
-        const section = document.createElement('div');
-        section.className = 'menu-subsection';
-        
-        const header = document.createElement('h4');
-        header.className = 'subsection-header';
-        header.textContent = title;
-        
-        const content = document.createElement('div');
-        content.className = 'subsection-content';
-        
-        section.appendChild(header);
-        section.appendChild(content);
-        parent.appendChild(section);
-        
-        return content;
+    initialize() {
+        try {
+            this.createMenuElements();
+            this.setupEventListeners();
+            this.isInitialized = true;
+            console.log('Menu system initialized successfully');
+        } catch (error) {
+            console.error('Error initializing menu system:', error);
+        }
     }
 
-    createSlider(parent, label, paramPath, min, max, step, value) {
-        const container = document.createElement('div');
-        container.className = 'control-group';
+    createMenuElements() {
+        // Create menu toggle button
+        const menuToggle = document.createElement('button');
+        menuToggle.id = 'menuToggle';
+        menuToggle.className = 'menu-toggle';
+        menuToggle.innerHTML = '⚙';
+        menuToggle.title = 'Settings';
         
-        const labelEl = document.createElement('label');
-        labelEl.textContent = label;
-        labelEl.className = 'control-label';
+        // Create sidebar
+        const sidebar = document.createElement('div');
+        sidebar.id = 'settingsSidebar';
+        sidebar.className = 'settings-sidebar';
         
-        const sliderContainer = document.createElement('div');
-        sliderContainer.className = 'slider-container';
+        sidebar.innerHTML = `
+            <div class="sidebar-header">
+                <h2>Settings</h2>
+                <button class="sidebar-close" id="sidebarClose">×</button>
+            </div>
+            <div class="sidebar-content">
+                ${this.createVisualizationSection()}
+                ${this.createColorSection()}
+                ${this.createLightingSection()}
+                ${this.createFileInfoSection()}
+            </div>
+            <div class="menu-footer">
+                <button class="menu-button primary" id="resetAllSettings">Reset All</button>
+                <button class="menu-button secondary" id="exportSettings">Export</button>
+            </div>
+        `;
         
-        const slider = document.createElement('input');
-        slider.type = 'range';
-        slider.min = min;
-        slider.max = max;
-        slider.step = step;
-        slider.value = value;
-        slider.className = 'control-slider';
+        // Add to DOM
+        const controlsDiv = document.querySelector('.controls');
+        if (controlsDiv) {
+            controlsDiv.appendChild(menuToggle);
+        } else {
+            document.body.appendChild(menuToggle);
+        }
         
-        const valueDisplay = document.createElement('span');
-        valueDisplay.textContent = value;
-        valueDisplay.className = 'slider-value';
-        
-        slider.addEventListener('input', (e) => {
-            const newValue = parseFloat(e.target.value);
-            valueDisplay.textContent = newValue.toFixed(3);
-            
-            // Handle array index updates
-            if (paramPath.includes('.')) {
-                const parts = paramPath.split('.');
-                if (parts[parts.length - 1].match(/^\d+$/)) {
-                    // It's an array index
-                    const arrayPath = parts.slice(0, -1).join('.');
-                    const index = parseInt(parts[parts.length - 1]);
-                    const currentArray = parameterManager.getParameter(arrayPath);
-                    currentArray[index] = newValue;
-                    parameterManager.updateParameter(arrayPath, currentArray);
-                } else {
-                    parameterManager.updateParameter(paramPath, newValue);
-                }
-            } else {
-                parameterManager.updateParameter(paramPath, newValue);
-            }
-            
-            this.requestRender();
-        });
-        
-        sliderContainer.appendChild(slider);
-        sliderContainer.appendChild(valueDisplay);
-        
-        container.appendChild(labelEl);
-        container.appendChild(sliderContainer);
-        parent.appendChild(container);
+        document.body.appendChild(sidebar);
     }
 
-    createColorPicker(parent, label, paramPath, color) {
-        const container = document.createElement('div');
-        container.className = 'control-group';
-        
-        const labelEl = document.createElement('label');
-        labelEl.textContent = label;
-        labelEl.className = 'control-label';
-        
-        const colorContainer = document.createElement('div');
-        colorContainer.className = 'color-container';
-        
-        const colorInput = document.createElement('input');
-        colorInput.type = 'color';
-        colorInput.className = 'control-color';
-        
-        // Convert RGB array to hex
-        const r = Math.round(color[0] * 255);
-        const g = Math.round(color[1] * 255);
-        const b = Math.round(color[2] * 255);
-        colorInput.value = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
-        
-        colorInput.addEventListener('input', (e) => {
-            const hex = e.target.value;
-            const r = parseInt(hex.slice(1, 3), 16) / 255;
-            const g = parseInt(hex.slice(3, 5), 16) / 255;
-            const b = parseInt(hex.slice(5, 7), 16) / 255;
-            
-            let newColor;
-            if (color.length === 4) {
-                newColor = [r, g, b, color[3]]; // Preserve alpha
-            } else {
-                newColor = [r, g, b];
-            }
-            
-            parameterManager.updateParameter(paramPath, newColor);
-            this.requestRender();
-        });
-        
-        colorContainer.appendChild(colorInput);
-        
-        container.appendChild(labelEl);
-        container.appendChild(colorContainer);
-        parent.appendChild(container);
-    }    setupEventListeners() {
+    createVisualizationSection() {
+        return `
+            <div class="menu-section">
+                <div class="section-header" data-section="visualization">
+                    Visualization
+                </div>
+                <div class="section-content" data-section-content="visualization">
+                    <div class="control-group">
+                        <label class="control-label">Sphere Radius</label>
+                        <div class="slider-container">
+                            <input type="range" class="control-slider" id="sphereRadiusSlider" 
+                                   min="0.005" max="0.1" step="0.001" value="0.025">
+                            <span class="slider-value" id="sphereRadiusValue">0.025</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Pipe Radius</label>
+                        <div class="slider-container">
+                            <input type="range" class="control-slider" id="pipeRadiusSlider" 
+                                   min="0.001" max="0.02" step="0.0005" value="0.005">
+                            <span class="slider-value" id="pipeRadiusValue">0.005</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Background Color</label>
+                        <div class="color-container">
+                            <input type="color" class="control-color" id="backgroundColorPicker" value="#e6e6e6">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createColorSection() {
+        return `
+            <div class="menu-section">
+                <div class="section-header" data-section="colors">
+                    Colors
+                </div>
+                <div class="section-content" data-section-content="colors">
+                    <div class="control-group">
+                        <label class="control-label">Minimum Nodes</label>
+                        <div class="color-container">
+                            <input type="color" class="control-color" id="minimumColorPicker" value="#1b3d81">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Saddle Nodes</label>
+                        <div class="color-container">
+                            <input type="color" class="control-color" id="saddleColorPicker" value="#37f5eb">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Maximum Nodes</label>
+                        <div class="color-container">
+                            <input type="color" class="control-color" id="maximumColorPicker" value="#b30e16">
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Pipe Color</label>
+                        <div class="color-container">
+                            <input type="color" class="control-color" id="pipeColorPicker" value="#cccccc">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createLightingSection() {
+        return `
+            <div class="menu-section">
+                <div class="section-header" data-section="lighting">
+                    Lighting
+                </div>
+                <div class="section-content" data-section-content="lighting">
+                    <div class="menu-subsection">
+                        <div class="subsection-header">Light Direction</div>
+                        <div class="subsection-content">
+                            <div class="control-group">
+                                <label class="control-label">Light X</label>
+                                <div class="slider-container">
+                                    <input type="range" class="control-slider" id="lightXSlider" 
+                                           min="-2" max="2" step="0.1" value="0.5">
+                                    <span class="slider-value" id="lightXValue">0.5</span>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Light Y</label>
+                                <div class="slider-container">
+                                    <input type="range" class="control-slider" id="lightYSlider" 
+                                           min="-2" max="2" step="0.1" value="1.0">
+                                    <span class="slider-value" id="lightYValue">1.0</span>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label class="control-label">Light Z</label>
+                                <div class="slider-container">
+                                    <input type="range" class="control-slider" id="lightZSlider" 
+                                           min="-2" max="2" step="0.1" value="1.0">
+                                    <span class="slider-value" id="lightZValue">1.0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="menu-subsection">
+                        <div class="subsection-header">Light Color</div>
+                        <div class="subsection-content">
+                            <div class="control-group">
+                                <label class="control-label">Light Color</label>
+                                <div class="color-container">
+                                    <input type="color" class="control-color" id="lightColorPicker" value="#ffffff">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    createFileInfoSection() {
+        return `
+            <div class="menu-section">
+                <div class="section-header" data-section="fileinfo">
+                    File Information
+                </div>
+                <div class="section-content" data-section-content="fileinfo">
+                    <div class="file-info">
+                        <div class="info-item">
+                            <span>File:</span>
+                            <span id="currentFileName">None</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Vertices:</span>
+                            <span id="vertexCount">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Edges:</span>
+                            <span id="edgeCount">0</span>
+                        </div>
+                        <div class="info-item">
+                            <span>Selected:</span>
+                            <span id="selectedCount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    setupEventListeners() {
         // Menu toggle
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'menu-toggle') {
-                this.toggleSidebar();
-            } else if (e.target.id === 'sidebar-close') {
-                this.closeSidebar();
-            } else if (e.target.id === 'reset-defaults') {
-                this.resetDefaults();
-            } else if (e.target.id === 'save-config') {
-                this.saveConfiguration();
-            }
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('settingsSidebar');
+        const sidebarClose = document.getElementById('sidebarClose');
+        
+        if (menuToggle) {
+            menuToggle.addEventListener('click', () => this.toggleMenu());
+        }
+        
+        if (sidebarClose) {
+            sidebarClose.addEventListener('click', () => this.closeMenu());
+        }
+        
+        // Section toggles
+        document.querySelectorAll('.section-header').forEach(header => {
+            header.addEventListener('click', () => this.toggleSection(header.dataset.section));
         });
         
-        // ESC key to close sidebar
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && this.isSidebarOpen) {
-                this.closeSidebar();
-            }
-        });
+        // Sliders
+        this.setupSliders();
+        
+        // Color pickers
+        this.setupColorPickers();
+        
+        // Footer buttons
+        this.setupFooterButtons();
     }
 
-    toggleSidebar() {
-        if (this.isSidebarOpen) {
-            this.closeSidebar();
+    setupSliders() {
+        // Sphere radius
+        const sphereRadiusSlider = document.getElementById('sphereRadiusSlider');
+        const sphereRadiusValue = document.getElementById('sphereRadiusValue');
+        if (sphereRadiusSlider) {
+            sphereRadiusSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                sphereRadiusValue.textContent = value.toFixed(3);
+                this.updateGlobalParameters({ sphereRadius: value });
+            });
+        }
+        
+        // Pipe radius
+        const pipeRadiusSlider = document.getElementById('pipeRadiusSlider');
+        const pipeRadiusValue = document.getElementById('pipeRadiusValue');
+        if (pipeRadiusSlider) {
+            pipeRadiusSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                pipeRadiusValue.textContent = value.toFixed(4);
+                this.updateGlobalParameters({ pipeRadius: value });
+            });
+        }
+        
+        // Light direction sliders
+        const lightXSlider = document.getElementById('lightXSlider');
+        const lightXValue = document.getElementById('lightXValue');
+        if (lightXSlider) {
+            lightXSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                lightXValue.textContent = value.toFixed(1);
+                this.updateLightDirection();
+            });
+        }
+        
+        const lightYSlider = document.getElementById('lightYSlider');
+        const lightYValue = document.getElementById('lightYValue');
+        if (lightYSlider) {
+            lightYSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                lightYValue.textContent = value.toFixed(1);
+                this.updateLightDirection();
+            });
+        }
+        
+        const lightZSlider = document.getElementById('lightZSlider');
+        const lightZValue = document.getElementById('lightZValue');
+        if (lightZSlider) {
+            lightZSlider.addEventListener('input', (e) => {
+                const value = parseFloat(e.target.value);
+                lightZValue.textContent = value.toFixed(1);
+                this.updateLightDirection();
+            });
+        }
+    }
+
+    setupColorPickers() {
+        // Background color
+        const backgroundColorPicker = document.getElementById('backgroundColorPicker');
+        if (backgroundColorPicker) {
+            backgroundColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateGlobalParameters({ backgroundColor: [...color, 1.0] });
+            });
+        }
+        
+        // Node colors
+        const minimumColorPicker = document.getElementById('minimumColorPicker');
+        if (minimumColorPicker) {
+            minimumColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateNodeColors({ minimum: color });
+            });
+        }
+        
+        const saddleColorPicker = document.getElementById('saddleColorPicker');
+        if (saddleColorPicker) {
+            saddleColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateNodeColors({ saddle: color });
+            });
+        }
+        
+        const maximumColorPicker = document.getElementById('maximumColorPicker');
+        if (maximumColorPicker) {
+            maximumColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateNodeColors({ maximum: color });
+            });
+        }
+        
+        const pipeColorPicker = document.getElementById('pipeColorPicker');
+        if (pipeColorPicker) {
+            pipeColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateGlobalParameters({ pipeColor: color });
+            });
+        }
+        
+        // Light color
+        const lightColorPicker = document.getElementById('lightColorPicker');
+        if (lightColorPicker) {
+            lightColorPicker.addEventListener('change', (e) => {
+                const color = this.hexToRgb(e.target.value);
+                this.updateLightColor(color);
+            });
+        }
+    }
+
+    setupFooterButtons() {
+        const resetAllButton = document.getElementById('resetAllSettings');
+        const exportButton = document.getElementById('exportSettings');
+        
+        if (resetAllButton) {
+            resetAllButton.addEventListener('click', () => this.resetAllSettings());
+        }
+        
+        if (exportButton) {
+            exportButton.addEventListener('click', () => this.exportSettings());
+        }
+    }
+
+    toggleMenu() {
+        this.isOpen = !this.isOpen;
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('settingsSidebar');
+        
+        if (this.isOpen) {
+            menuToggle.classList.add('open');
+            sidebar.classList.add('open');
         } else {
-            this.openSidebar();
-        }
-    }    openSidebar() {
-        this.isSidebarOpen = true;
-        this.sidebarElement.classList.add('open');
-        this.menuToggle.classList.add('open');
-        document.body.classList.add('sidebar-open');
-    }
-
-    closeSidebar() {
-        this.isSidebarOpen = false;
-        this.sidebarElement.classList.remove('open');
-        this.menuToggle.classList.remove('open');
-        document.body.classList.remove('sidebar-open');
-    }resetDefaults() {
-        if (confirm('Reset all settings to default values?')) {
-            parameterManager.resetToDefaults();
-            this.populateMenu(); // Refresh menu with new values
-            this.requestRender();
-            this.showNotification('Settings reset to defaults', 'success');
+            menuToggle.classList.remove('open');
+            sidebar.classList.remove('open');
         }
     }
 
-    async saveConfiguration() {
-        const success = await parameterManager.saveParameters();
-        if (success) {
-            this.showNotification('Configuration saved successfully', 'success');
-        } else {
-            this.showNotification('Failed to save configuration', 'error');
-        }
+    closeMenu() {
+        this.isOpen = false;
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('settingsSidebar');
+        
+        menuToggle.classList.remove('open');
+        sidebar.classList.remove('open');
     }
 
-    requestRender() {
-        // Trigger re-render if data is loaded
-        if (typeof offData !== 'undefined' && offData !== '') {
-            if (typeof initializeGraph === 'function') {
-                initializeGraph(offData);
-            }
-            if (typeof renderGraph === 'function') {
-                renderGraph();
-            }
-        }
-    }
-
-    showNotification(message, type = 'info') {
-        if (typeof showStatus === 'function') {
-            showStatus(message, type);
-        } else {
-            console.log(`${type.toUpperCase()}: ${message}`);
-        }
-    }
-
-    createLogSection(parent) {
-        const section = this.createSection('Console Log', parent);
+    toggleSection(sectionName) {
+        const header = document.querySelector(`[data-section="${sectionName}"]`);
+        const content = document.querySelector(`[data-section-content="${sectionName}"]`);
         
-        // Log container
-        const logContainer = document.createElement('div');
-        logContainer.className = 'log-container';
-        
-        // Log display area
-        const logDisplay = document.createElement('div');
-        logDisplay.className = 'log-display';
-        logDisplay.id = 'log-display';
-        
-        // Log controls
-        const logControls = document.createElement('div');
-        logControls.className = 'log-controls';
-        logControls.innerHTML = `
-            <button id="clear-log" class="log-button">Clear Log</button>
-            <button id="export-log" class="log-button">Export Log</button>
-        `;
-        
-        logContainer.appendChild(logDisplay);
-        logContainer.appendChild(logControls);
-        section.appendChild(logContainer);
-        
-        // Initialize log system
-        this.initializeLogSystem();
-    }
-
-    initializeLogSystem() {
-        // Store reference to log display
-        this.logDisplay = document.getElementById('log-display');
-        this.logHistory = [];
-        
-        // Override the existing showStatus function to capture messages
-        if (typeof window.showStatus === 'function') {
-            this.originalShowStatus = window.showStatus;
-        }
-        
-        // Create our enhanced showStatus function
-        window.showStatus = (message, type = 'info') => {
-            this.addLogEntry(message, type);
-            // Still call original function for existing behavior
-            if (this.originalShowStatus) {
-                this.originalShowStatus(message, type);
+        if (header && content) {
+            const isCollapsed = header.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                header.classList.remove('collapsed');
+                content.classList.remove('collapsed');
+                this.sectionStates[sectionName] = false;
             } else {
-                // Fallback if original doesn't exist
-                this.showStatusFallback(message, type);
+                header.classList.add('collapsed');
+                content.classList.add('collapsed');
+                this.sectionStates[sectionName] = true;
             }
-        };
-          // Add event listeners for log controls
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'clear-log') {
-                this.clearLog();
-            } else if (e.target.id === 'export-log') {
-                this.exportLog();
-            }
+        }
+    }
+
+    // API Integration Methods
+    updateGlobalParameters(params) {
+        if (typeof updateGlobalParameters === 'function') {
+            updateGlobalParameters(params);
+        } else {
+            console.warn('updateGlobalParameters API function not available');
+        }
+    }
+
+    updateNodeColors(colors) {
+        if (typeof updateColorConfiguration === 'function') {
+            updateColorConfiguration(colors);
+        } else {
+            console.warn('updateColorConfiguration API function not available');
+        }
+    }
+
+    updateLightDirection() {
+        const lightX = parseFloat(document.getElementById('lightXSlider').value);
+        const lightY = parseFloat(document.getElementById('lightYSlider').value);
+        const lightZ = parseFloat(document.getElementById('lightZSlider').value);
+        
+        if (typeof updateLightingConfiguration === 'function') {
+            updateLightingConfiguration({
+                lightDirection: [lightX, lightY, lightZ]
+            });
+        } else {
+            console.warn('updateLightingConfiguration API function not available');
+        }
+    }
+
+    updateLightColor(color) {
+        if (typeof updateLightingConfiguration === 'function') {
+            updateLightingConfiguration({
+                lightColor: color
+            });
+        } else {
+            console.warn('updateLightingConfiguration API function not available');
+        }
+    }
+
+    resetAllSettings() {
+        // Reset all sliders and color pickers to default values
+        document.getElementById('sphereRadiusSlider').value = '0.025';
+        document.getElementById('sphereRadiusValue').textContent = '0.025';
+        
+        document.getElementById('pipeRadiusSlider').value = '0.005';
+        document.getElementById('pipeRadiusValue').textContent = '0.005';
+        
+        document.getElementById('backgroundColorPicker').value = '#e6e6e6';
+        document.getElementById('minimumColorPicker').value = '#1b3d81';
+        document.getElementById('saddleColorPicker').value = '#37f5eb';
+        document.getElementById('maximumColorPicker').value = '#b30e16';
+        document.getElementById('pipeColorPicker').value = '#cccccc';
+        
+        document.getElementById('lightXSlider').value = '0.5';
+        document.getElementById('lightXValue').textContent = '0.5';
+        document.getElementById('lightYSlider').value = '1.0';
+        document.getElementById('lightYValue').textContent = '1.0';
+        document.getElementById('lightZSlider').value = '1.0';
+        document.getElementById('lightZValue').textContent = '1.0';
+        document.getElementById('lightColorPicker').value = '#ffffff';
+        
+        // Apply defaults through API
+        this.updateGlobalParameters({
+            sphereRadius: 0.025,
+            pipeRadius: 0.005,
+            backgroundColor: [0.9, 0.9, 0.9, 1.0],
+            pipeColor: [0.8, 0.8, 0.8]
         });
         
-        // Add initial log entry
-        setTimeout(() => {
-            this.addLogEntry('Console log initialized', 'info');
-            this.addLogEntry('Ready to load OFF files', 'info');
-        }, 100);
+        this.updateNodeColors({
+            minimum: [0.106, 0.239, 0.506],
+            saddle: [0.216, 0.961, 0.922],
+            maximum: [0.702, 0.055, 0.086]
+        });
+        
+        this.updateLightDirection();
+        this.updateLightColor([1.0, 1.0, 1.0]);
     }
 
-    addLogEntry(message, type) {
-        const timestamp = new Date().toLocaleTimeString();
-        const logEntry = {
-            message,
-            type,
-            timestamp,
-            id: Date.now() + Math.random()
+    exportSettings() {
+        const settings = {
+            sphereRadius: parseFloat(document.getElementById('sphereRadiusSlider').value),
+            pipeRadius: parseFloat(document.getElementById('pipeRadiusSlider').value),
+            backgroundColor: this.hexToRgb(document.getElementById('backgroundColorPicker').value),
+            minimumColor: this.hexToRgb(document.getElementById('minimumColorPicker').value),
+            saddleColor: this.hexToRgb(document.getElementById('saddleColorPicker').value),
+            maximumColor: this.hexToRgb(document.getElementById('maximumColorPicker').value),
+            pipeColor: this.hexToRgb(document.getElementById('pipeColorPicker').value),
+            lightDirection: [
+                parseFloat(document.getElementById('lightXSlider').value),
+                parseFloat(document.getElementById('lightYSlider').value),
+                parseFloat(document.getElementById('lightZSlider').value)
+            ],
+            lightColor: this.hexToRgb(document.getElementById('lightColorPicker').value)
         };
         
-        this.logHistory.push(logEntry);
-        
-        // Keep only last 100 entries to prevent memory issues
-        if (this.logHistory.length > 100) {
-            this.logHistory.shift();
-        }
-        
-        this.updateLogDisplay();
-    }
-
-    updateLogDisplay() {
-        if (!this.logDisplay) return;
-        
-        const logEntries = this.logHistory.slice(-100); // Show last 20 entries
-        
-        this.logDisplay.innerHTML = logEntries.map(entry => `
-            <div class="log-entry log-${entry.type}">
-                <span class="log-timestamp">[${entry.timestamp}]</span>
-                <span class="log-message">${entry.message}</span>
-            </div>
-        `).join('');
-        
-        // Auto-scroll to bottom
-        this.logDisplay.scrollTop = this.logDisplay.scrollHeight;
-    }
-
-    clearLog() {
-        this.logHistory = [];
-        this.updateLogDisplay();
-        this.addLogEntry('Log cleared', 'info');
-    }
-
-    exportLog() {
-        const logText = this.logHistory.map(entry => 
-            `[${entry.timestamp}] [${entry.type.toUpperCase()}] ${entry.message}`
-        ).join('\n');
-        
-        const blob = new Blob([logText], { type: 'text/plain' });
+        const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `contour-tree-log-${new Date().toISOString().slice(0, 10)}.txt`;
+        a.download = 'contour_tree_settings.json';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
-        this.addLogEntry('Log exported successfully', 'success');
     }
 
-    showStatusFallback(message, type) {
-        // Fallback status display if original function doesn't exist
-        const statusElement = document.getElementById('status');
-        if (statusElement) {
-            statusElement.textContent = message;
-            statusElement.className = `status ${type}`;
-            statusElement.style.display = 'block';
-            
-            setTimeout(() => {
-                statusElement.style.display = 'none';
-            }, 3000);
-        }
-    }    updateCurrentFileName(fileName) {
-        const fileNameElement = document.getElementById('current-file-name');
+    // Utility methods
+    hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? [
+            parseInt(result[1], 16) / 255,
+            parseInt(result[2], 16) / 255,
+            parseInt(result[3], 16) / 255
+        ] : [1, 1, 1];
+    }
+
+    rgbToHex(r, g, b) {
+        return "#" + ((1 << 24) + (Math.round(r * 255) << 16) + (Math.round(g * 255) << 8) + Math.round(b * 255)).toString(16).slice(1);
+    }
+
+    // Public methods for external access
+    updateCurrentFileName(fileName) {
+        this.currentFileName = fileName;
+        const fileNameElement = document.getElementById('currentFileName');
         if (fileNameElement) {
-            fileNameElement.textContent = fileName || 'No file loaded';
-            fileNameElement.title = fileName || '';
+            fileNameElement.textContent = fileName || 'None';
         }
+    }
+
+    updateFileInfo(vertexCount, edgeCount, selectedCount) {
+        const vertexCountElement = document.getElementById('vertexCount');
+        const edgeCountElement = document.getElementById('edgeCount');
+        const selectedCountElement = document.getElementById('selectedCount');
         
-        // Update webpage title
-        if (fileName) {
-            document.title = `${fileName}`;
-        } else {
-            document.title = 'Contour Tree Visualizer';
-        }
+        if (vertexCountElement) vertexCountElement.textContent = vertexCount || 0;
+        if (edgeCountElement) edgeCountElement.textContent = edgeCount || 0;
+        if (selectedCountElement) selectedCountElement.textContent = selectedCount || 0;
+    }
+
+    // Update menu when new file is loaded
+    updateOnFileLoad(fileName, vertexCount, edgeCount) {
+        this.updateCurrentFileName(fileName);
+        this.updateFileInfo(vertexCount, edgeCount, 0);
+    }
+
+    // Update menu when edge selection changes
+    updateOnEdgeSelectionChange(selectedCount) {
+        this.updateFileInfo(
+            document.getElementById('vertexCount').textContent,
+            document.getElementById('edgeCount').textContent,
+            selectedCount
+        );
     }
 }
 
-// Initialize menu system when DOM is loaded
-let menuSystem;
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize menu system
+let menuSystem = null;
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        menuSystem = new MenuSystem();
+        // Make it globally accessible
+        window.menuSystem = menuSystem;
+    });
+} else {
     menuSystem = new MenuSystem();
-});
+    // Make it globally accessible
+    window.menuSystem = menuSystem;
+}

@@ -213,7 +213,7 @@ function getNodeType(typeStr) {
     }
 }
 
-// Parse OFF data
+// // Parse OFF data
 function parseOFFData(data) {
     const lines = data.trim().split('\n').map(line => line.trim());
     
@@ -456,29 +456,41 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
             // Calculate cutting plane based on horizontal direction and vertical direction
             const isVerticalUp = (endVertex[1] - intermediatePoint[1]) > 0;
             
-            // VERTICAL BIAS EXPLANATION:
-            // We use [0, 1, 0] for both up and down directions because:
-            // 1. The cut plane normal gets a consistent upward tilt
-            // 2. The fragment shader's cylDir (cylinder direction) has opposite signs for up/down
-            // 3. The joint type determines which side of the plane to discard
-            // 4. This combination naturally produces correct 45° beveled cuts for both orientations
-            // The cylDir sign acts as an implicit correction factor in the shader math
-            const verticalBias = [0, 1, 0]; // Same bias for both directions - see explanation above
-            const cutPlaneDirection = [
-                horizontalUnit[0] + verticalBias[0],
-                horizontalUnit[1] + verticalBias[1],
-                horizontalUnit[2] + verticalBias[2]
+            // IMPROVED GEOMETRIC CUTTING PLANE CALCULATION:
+            // Calculate the bisector of the angle between the two cylinder directions
+            // This creates a 45-degree beveled cut that works correctly with model transformations
+            const horizontalDirection = [
+                intermediatePoint[0] - startVertex[0],
+                intermediatePoint[1] - startVertex[1], 
+                intermediatePoint[2] - startVertex[2]
+            ];
+            const verticalDirection = [
+                endVertex[0] - intermediatePoint[0],
+                endVertex[1] - intermediatePoint[1],
+                endVertex[2] - intermediatePoint[2]
             ];
             
-            // Normalize the cutting plane normal
-            const cutLength = Math.sqrt(cutPlaneDirection[0]*cutPlaneDirection[0] + 
-                                       cutPlaneDirection[1]*cutPlaneDirection[1] + 
-                                       cutPlaneDirection[2]*cutPlaneDirection[2]);
-            const normalizedCutPlane = [
-                cutPlaneDirection[0]/cutLength,
-                cutPlaneDirection[1]/cutLength,
-                cutPlaneDirection[2]/cutLength
+            // Normalize both directions
+            const hLen = Math.sqrt(horizontalDirection[0]*horizontalDirection[0] + horizontalDirection[1]*horizontalDirection[1] + horizontalDirection[2]*horizontalDirection[2]);
+            const vLen = Math.sqrt(verticalDirection[0]*verticalDirection[0] + verticalDirection[1]*verticalDirection[1] + verticalDirection[2]*verticalDirection[2]);
+            
+            const hNorm = hLen > 0 ? [horizontalDirection[0]/hLen, horizontalDirection[1]/hLen, horizontalDirection[2]/hLen] : [1, 0, 0];
+            const vNorm = vLen > 0 ? [verticalDirection[0]/vLen, verticalDirection[1]/vLen, verticalDirection[2]/vLen] : [0, 1, 0];
+            
+            // Calculate angle bisector (this gives us the cutting plane normal)
+            const bisector = [
+                hNorm[0] + vNorm[0],
+                hNorm[1] + vNorm[1],
+                hNorm[2] + vNorm[2]
             ];
+            
+            // Normalize the bisector to get the cutting plane normal
+            const bisectorLen = Math.sqrt(bisector[0]*bisector[0] + bisector[1]*bisector[1] + bisector[2]*bisector[2]);
+            const normalizedCutPlane = bisectorLen > 0 ? [
+                bisector[0]/bisectorLen,
+                bisector[1]/bisectorLen,
+                bisector[2]/bisectorLen
+            ] : [0, 1, 0];
 
             // First segment: start to extended intermediate (horizontal)
             lShapedEdges.push({
@@ -544,25 +556,41 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
             // Calculate cutting plane based on horizontal direction and vertical direction
             const isVerticalDown = (intermediatePoint[1] - startVertex[1]) > 0;
             
-            // VERTICAL BIAS EXPLANATION:
-            // Same principle as horizontal-then-vertical: [0, 1, 0] works for both directions
-            // The combination of consistent bias + cylDir sign + joint type produces correct cuts
-            const verticalBias = [0, 1, 0]; // Same bias for both directions - see explanation above
-            const cutPlaneDirection = [
-                horizontalUnit[0] + verticalBias[0],
-                horizontalUnit[1] + verticalBias[1],
-                horizontalUnit[2] + verticalBias[2]
+            // IMPROVED GEOMETRIC CUTTING PLANE CALCULATION:
+            // Calculate the bisector of the angle between the two cylinder directions
+            // This creates a 45-degree beveled cut that works correctly with model transformations
+            const verticalDirection2 = [
+                intermediatePoint[0] - startVertex[0],
+                intermediatePoint[1] - startVertex[1], 
+                intermediatePoint[2] - startVertex[2]
+            ];
+            const horizontalDirection2 = [
+                endVertex[0] - intermediatePoint[0],
+                endVertex[1] - intermediatePoint[1],
+                endVertex[2] - intermediatePoint[2]
             ];
             
-            // Normalize the cutting plane normal
-            const cutLength = Math.sqrt(cutPlaneDirection[0]*cutPlaneDirection[0] + 
-                                       cutPlaneDirection[1]*cutPlaneDirection[1] + 
-                                       cutPlaneDirection[2]*cutPlaneDirection[2]);
-            const normalizedCutPlane = [
-                cutPlaneDirection[0]/cutLength,
-                cutPlaneDirection[1]/cutLength,
-                cutPlaneDirection[2]/cutLength
+            // Normalize both directions
+            const vLen2 = Math.sqrt(verticalDirection2[0]*verticalDirection2[0] + verticalDirection2[1]*verticalDirection2[1] + verticalDirection2[2]*verticalDirection2[2]);
+            const hLen2 = Math.sqrt(horizontalDirection2[0]*horizontalDirection2[0] + horizontalDirection2[1]*horizontalDirection2[1] + horizontalDirection2[2]*horizontalDirection2[2]);
+            
+            const vNorm2 = vLen2 > 0 ? [verticalDirection2[0]/vLen2, verticalDirection2[1]/vLen2, verticalDirection2[2]/vLen2] : [0, 1, 0];
+            const hNorm2 = hLen2 > 0 ? [horizontalDirection2[0]/hLen2, horizontalDirection2[1]/hLen2, horizontalDirection2[2]/hLen2] : [1, 0, 0];
+            
+            // Calculate angle bisector (this gives us the cutting plane normal)
+            const bisector2 = [
+                vNorm2[0] + hNorm2[0],
+                vNorm2[1] + hNorm2[1],
+                vNorm2[2] + hNorm2[2]
             ];
+            
+            // Normalize the bisector to get the cutting plane normal
+            const bisectorLen2 = Math.sqrt(bisector2[0]*bisector2[0] + bisector2[1]*bisector2[1] + bisector2[2]*bisector2[2]);
+            const normalizedCutPlane = bisectorLen2 > 0 ? [
+                bisector2[0]/bisectorLen2,
+                bisector2[1]/bisectorLen2,
+                bisector2[2]/bisectorLen2
+            ] : [0, 1, 0];
 
             // Push horizontal segment first for easier plane calculation
             lShapedEdges.push({
