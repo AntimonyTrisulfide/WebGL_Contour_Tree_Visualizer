@@ -206,6 +206,9 @@ function setSelectedEdges(edgeIds) {
 function updateGlobalVariables(treeData, lightConfig, colors, globalVars) {
     console.log('updateGlobalVariables called');
     
+    // Store tree data globally for the visualizer to access
+    window.treeData = treeData;
+    
     // Update tree data
     if (treeData.vertices) {
         vertices = treeData.vertices;
@@ -277,10 +280,10 @@ function isVisualizationInitialized() {
  * Initialize the visualization
  */
 function initializeVisualization() {
-    // Initialize WebGL components using the global offData
-    if (typeof initializeGraph === 'function' && typeof offData !== 'undefined') {
-        console.log('Calling initializeGraph with offData');
-        initializeGraph(offData);
+    // Initialize WebGL components using the API-provided tree data
+    if (typeof initializeGraph === 'function') {
+        console.log('Calling initializeGraph with API data (parser-independent)');
+        initializeGraph(); // No longer depends on offData
     } else if (typeof initialize === 'function') {
         console.log('Calling initialize as fallback');
         initialize();

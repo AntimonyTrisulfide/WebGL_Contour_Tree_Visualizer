@@ -92,40 +92,45 @@ function resetCameraInitialization() {
 function handleCameraMovement() {
     let moved = false;
     
+    // Ensure keyState exists
+    if (!window.keyState) {
+        window.keyState = {};
+    }
+    
     // W/S - Move forward/backward (zoom in/out)
-    if (keyState['w']) {
+    if (window.keyState['w']) {
         cameraDistance *= 0.95; // Zoom in
         cameraDistance = Math.max(0.1, cameraDistance);
         moved = true;
     }
-    if (keyState['s']) {
+    if (window.keyState['s']) {
         cameraDistance *= 1.05; // Zoom out
         moved = true;
     }
     
     // A/D - Rotate around Y-axis (left/right)
-    if (keyState['a']) {
+    if (window.keyState['a']) {
         trackballRotation[1] -= 0.05; // Rotate left
         moved = true;
     }
-    if (keyState['d']) {
+    if (window.keyState['d']) {
         trackballRotation[1] += 0.05; // Rotate right
         moved = true;
     }
     
     // T/G - Pan camera target up/down (vertical movement)
     const panSpeed = 0.1;
-    if (keyState['t']) {
+    if (window.keyState['t']) {
         cameraTarget[1] += panSpeed; // Move target up
         moved = true;
     }
-    if (keyState['g']) {
+    if (window.keyState['g']) {
         cameraTarget[1] -= panSpeed; // Move target down
         moved = true;
     }
     
     // R - Reset camera to initial position
-    if (keyState['r']) {
+    if (window.keyState['r']) {
         if (vertices && vertices.length > 0) {
             resetTrackball(); // Use new reset function
             cameraOffset = [0, 0, 0]; // Reset camera panning offset
@@ -141,8 +146,8 @@ function handleCameraMovement() {
     }
     
     // X - Reset only camera target (keep rotation)
-    if (keyState['x']) {
-        keyState['x'] = false; // Prevent continuous triggering
+    if (window.keyState['x']) {
+        window.keyState['x'] = false; // Prevent continuous triggering
         if (vertices && vertices.length > 0) {
             const bbox = calculateBoundingBox(vertices);
             cameraTarget = [
@@ -155,17 +160,32 @@ function handleCameraMovement() {
         }
     }
     
-    // P - Toggle spacing (your existing functionality)
-    if (keyState['p']) {
-        keyState['p'] = false; // Prevent continuous triggering
-        applySpacing = !applySpacing;
-        if (applySpacing) {
-            console.log('[INFO] Spacing applied to edges');
+    // P - Toggle spacing (universal functionality)
+    if (window.keyState['p']) {
+        window.keyState['p'] = false; // Prevent continuous triggering
+        
+        // Toggle the spacing flag
+        if (typeof window.applySpacing !== 'undefined') {
+            window.applySpacing = !window.applySpacing;
+            console.log(`[INFO] Spacing ${window.applySpacing ? 'enabled' : 'disabled'}`);
+            
+            // Re-initialize with current data
+            if (window.currentTreeData) {
+                console.log('[INFO] Re-initializing with current tree data (spacing toggled)');
+                // Update the global treeData and re-initialize
+                window.treeData = window.currentTreeData;
+                initializeGraph(); // Call without offData for API data
+            } else if (typeof offData !== 'undefined' && offData) {
+                console.log('[INFO] Re-initializing with OFF data (spacing toggled)');
+                initializeGraph(offData);
+            } else {
+                console.log('[WARNING] No data available to re-initialize with spacing toggle');
+            }
+            
+            renderGraphWithFPS();
         } else {
-            console.log('[INFO] Spacing removed from edges');
+            console.log('[WARNING] applySpacing variable not available');
         }
-        initializeGraph(offData);
-        renderGraphWithFPS();
         return;
     }
     

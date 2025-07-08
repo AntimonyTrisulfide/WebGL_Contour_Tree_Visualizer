@@ -4,9 +4,6 @@ let offData = ``; // Empty string to hold OFF data
 
 let prevOffData; // Variable to store the OFF file data to compare the strings used by initialize.js
 
-let applySpacing = false; // Flag to apply node spacing
-let prevSpacing = false; // Previous state of applySpacing
-
 let vertices, edges, vertexValues, vertexTypes;
 
 let intermediatePoints = []; // Store intermediate points for L-shaped connections
@@ -290,11 +287,11 @@ function parseOFFData(data) {
     }  
 
     // Apply node spacing to vertices
-    if(applySpacing === true) {
+    if(window.applySpacing === true) {
         vertices = applyNodeSpacing(vertices, sphereRadius, vertexValues, vertexTypes);
     }
 
-    if(applySpacing === false){
+    if(window.applySpacing === false){
         // use original vertices
         vertices = vertices.map(vertex => [
             vertex[0],
@@ -618,3 +615,9 @@ function createLShapedConnections(vertices, edges, vertexTypes, vertexValues) {
 
     return lShapedEdges;
 }
+
+// Export functions for universal use
+window.applyNodeSpacing = applyNodeSpacing;
+window.parseOFFData = parseOFFData;
+window.createLShapedConnections = createLShapedConnections;
+window.getNodeType = getNodeType;

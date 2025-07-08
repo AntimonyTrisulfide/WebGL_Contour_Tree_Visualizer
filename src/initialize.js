@@ -4,6 +4,85 @@ let sphereProgram, pipeProgram;
 let sphereUniforms, pipeUniforms;
 let verticesCount, edgesCount;
 
+// Function to clean up WebGL resources
+function cleanupWebGLResources() {
+    console.log('🧹 Cleaning up WebGL resources...');
+    
+    if (gl) {
+        // Delete VAOs
+        if (window.sphereVAO) {
+            gl.deleteVertexArray(window.sphereVAO);
+            window.sphereVAO = null;
+        }
+        if (window.pipeVAO) {
+            gl.deleteVertexArray(window.pipeVAO);
+            window.pipeVAO = null;
+        }
+        
+        // Delete buffers
+        if (window.instanceBuffer) {
+            gl.deleteBuffer(window.instanceBuffer);
+            window.instanceBuffer = null;
+        }
+        if (window.pipeInstanceBuffer) {
+            gl.deleteBuffer(window.pipeInstanceBuffer);
+            window.pipeInstanceBuffer = null;
+        }
+        
+        // Delete shader programs
+        if (sphereProgram) {
+            gl.deleteProgram(sphereProgram);
+            sphereProgram = null;
+        }
+        if (pipeProgram) {
+            gl.deleteProgram(pipeProgram);
+            pipeProgram = null;
+        }
+    }
+    
+    // Clear uniforms
+    sphereUniforms = null;
+    pipeUniforms = null;
+    
+    console.log('✅ WebGL resources cleaned up');
+}
+
+// Function to force complete reinitialization
+function forceCompleteReinitialization() {
+    console.log('🔄 Forcing complete reinitialization...');
+    
+    // Clean up WebGL resources
+    cleanupWebGLResources();
+    
+    // Clear cached data
+    if (typeof window.cachedPipeInstanceData !== 'undefined') {
+        window.cachedPipeInstanceData = null;
+    }
+    if (typeof window.edgeToInstanceMapping !== 'undefined') {
+        window.edgeToInstanceMapping = new Map();
+    }
+    if (typeof window.lShapedEdgesCache !== 'undefined') {
+        window.lShapedEdgesCache = null;
+    }
+    if (typeof window.previousSelectedEdge !== 'undefined') {
+        window.previousSelectedEdge = -1;
+    }
+    
+    // Reset camera
+    if (typeof resetCameraInitialization === 'function') {
+        resetCameraInitialization();
+    }
+    
+    // Clear selections
+    window.selectedEdges = [];
+    window.edgeId = [];
+    
+    // Clear previous data tracking
+    window.prevOffData = undefined;
+    window.prevSpacing = undefined;
+    
+    console.log('✅ Complete reinitialization done');
+}
 
 // gl.enable(gl.DEPTH_TEST);
 // gl.depthFunc(gl.LEQUAL); // Already default, but explicitly set for clarity
@@ -61,10 +140,10 @@ async function createShaderProgram() {
         pipeVertexShaderSrc,
         pipeFragmentShaderSrc
     ] = await Promise.all([
-        loadShaderSource('resources/sphereShader.vert'),
-        loadShaderSource('resources/sphereShader.frag'),
-        loadShaderSource('resources/pipeShader.vert'),
-        loadShaderSource('resources/pipeShader.frag')
+        loadShaderSource('../resources/sphereShader.vert'),
+        loadShaderSource('../resources/sphereShader.frag'),
+        loadShaderSource('../resources/pipeShader.vert'),
+        loadShaderSource('../resources/pipeShader.frag')
     ]);
 
     if (!sphereVertexShaderSrc || !sphereFragmentShaderSrc ||
@@ -129,7 +208,7 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
 }
 
 // Updated initializeGraph function with L-shaped connections
-async function initializeGraph(offData) {
+async function initializeGraph(offData = null) {
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -141,23 +220,73 @@ async function initializeGraph(offData) {
     if (typeof clearPipeCache !== 'undefined') {
         clearPipeCache();
     }
+    
+    // Clear previous state when loading new data
+    validVertices = [];
+    validTypes = [];
+    intermediatePoints = [];
+    if (typeof window.selectedEdges !== 'undefined') {
+        window.selectedEdges = [];
+    }
 
     try {
+        // Check if we need to force reinitialization due to different data
+        const currentDataHash = JSON.stringify(window.treeData);
+        const shouldForceReinit = window.lastDataHash && window.lastDataHash !== currentDataHash;
+        
+        if (shouldForceReinit) {
+            console.log("Different data detected, forcing complete reinitialization...");
+            forceCompleteReinitialization();
+        }
+        
+        // Store current data hash for comparison
+        window.lastDataHash = currentDataHash;
+        
         // Replace the condition check:
-        if (offData === prevOffData && prevSpacing === applySpacing) {
+        if (!shouldForceReinit && typeof prevOffData !== 'undefined' && offData && offData === prevOffData && window.prevSpacing === window.applySpacing) {
             console.log("Same graph data is already initialized, skipping parsing part of initialization.");
             // // Only update radius-dependent data, not recreate everything
             // updateInstanceData(); // Create this new function
             // return;
         }
         else{
-            prevOffData = offData; // Update previous OFF data
-            prevSpacing = applySpacing; // Update previous spacing
-            const parsedData = parseOFFData(offData);
-            vertices = parsedData.vertices;
-            edges = parsedData.edges;
-            vertexTypes = parsedData.vertexTypes // Now we have new column for vertex types
-            vertexValues = parsedData.vertexValues; // Function values for each vertex
+            // Use data from the visualizer API (parser-independent)
+            if (window.treeData) {
+                console.log("Using tree data from API (parser-independent)");
+                
+                // Apply universal spacing logic
+                let processedTreeData = window.treeData;
+                if (typeof window.applySpacingToTreeData === 'function') {
+                    processedTreeData = window.applySpacingToTreeData(window.treeData, window.applySpacing);
+                } else if (typeof window.applySpacing !== 'undefined' && window.applySpacing === true && typeof applyNodeSpacing === 'function') {
+                    // Fallback to direct spacing application
+                    console.log("[INFO] Applying node spacing to API data (fallback)");
+                    let spacedVertices = applyNodeSpacing(window.treeData.vertices, sphereRadius, window.treeData.vertexValues, window.treeData.vertexTypes);
+                    processedTreeData = { ...window.treeData, vertices: spacedVertices };
+                }
+                
+                vertices = processedTreeData.vertices;
+                edges = processedTreeData.edges;
+                vertexTypes = processedTreeData.vertexTypes;
+                vertexValues = processedTreeData.vertexValues;
+                
+                // Initialize validVertices and validTypes for non-OFF files
+                validVertices = [...vertices];
+                validTypes = [...vertexTypes];
+                
+            } else if (typeof offData !== 'undefined' && offData) {
+                // Fallback: parse OFF data if no tree data is provided via API
+                prevOffData = offData; // Update previous OFF data
+                window.prevSpacing = window.applySpacing; // Update previous spacing
+                const parsedData = parseOFFData(offData);
+                vertices = parsedData.vertices;
+                edges = parsedData.edges;
+                vertexTypes = parsedData.vertexTypes;
+                vertexValues = parsedData.vertexValues;
+                console.log("Using OFF data fallback");
+            } else {
+                throw new Error("No tree data available from API or OFF data");
+            }
 
             // Initialize camera with proper bounding box calculation
             if (typeof initializeCamera === 'function') {
@@ -187,8 +316,16 @@ async function initializeGraph(offData) {
         const cuboid = createCuboidGeometry(); // Use cuboid geometry for pipes
         sphereIndexCount = sphere.indices.length;
         pipeIndexCount = cuboid.indices.length;        let instanceObjects = updateInstanceData(); // Create this new function
+        
+        if (!instanceObjects || !instanceObjects.instanceData || !instanceObjects.pipeInstanceData) {
+            throw new Error("Failed to create instance data");
+        }
+        
         let instanceData = instanceObjects.instanceData; // Sphere instance data
-        let pipeInstanceData = instanceObjects.pipeInstanceData; // Pipe instance datalet edgesCount = instanceObjects.edgeCount; // Number of edges for pipes
+        let pipeInstanceData = instanceObjects.pipeInstanceData; // Pipe instance data
+        let edgesCount = instanceObjects.edgeCount; // Number of edges for pipes
+        
+        console.log(`[DEBUG] Instance data created: ${instanceData.length / 7} spheres, ${pipeInstanceData.length / 17} pipe segments`);
 
 
         // Count different status type points
@@ -251,12 +388,25 @@ async function initializeGraph(offData) {
             console.log("Using existing attribute locations.");
         }
         
-        
+        // Clean up old VAOs and buffers if they exist
+        if (sphereVAO) {
+            gl.deleteVertexArray(sphereVAO);
+            sphereVAO = null;
+        }
+        if (pipeVAO) {
+            gl.deleteVertexArray(pipeVAO);
+            pipeVAO = null;
+        }
+        if (instanceBuffer) {
+            gl.deleteBuffer(instanceBuffer);
+            instanceBuffer = null;
+        }
+        if (pipeInstanceBuffer) {
+            gl.deleteBuffer(pipeInstanceBuffer);
+            pipeInstanceBuffer = null;
+        }
 
-
-        
-        // Clean up old VAOs if they exist
-        if (sphereVAO) gl.deleteVertexArray(sphereVAO);        sphereVAO = gl.createVertexArray();
+        sphereVAO = gl.createVertexArray();
         gl.bindVertexArray(sphereVAO);
 
         const spherePositionBuffer = gl.createBuffer();
@@ -302,12 +452,8 @@ async function initializeGraph(offData) {
         gl.bindVertexArray(null);
 
 
-        // Set up pipe VAO
-
-        // In initializeGraph, update the pipe VAO setup
-    // In initializeGraph, pipe VAO setup
-    if (pipeVAO) gl.deleteVertexArray(pipeVAO);
-    pipeVAO = gl.createVertexArray();
+        // Set up pipe VAO (already cleaned up above)
+        pipeVAO = gl.createVertexArray();
     gl.bindVertexArray(pipeVAO);
 
     const pipePositionBuffer = gl.createBuffer();
@@ -364,26 +510,39 @@ async function initializeGraph(offData) {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, pipeIndexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cuboid.indices, gl.STATIC_DRAW);
 
-    gl.bindVertexArray(null);
-
-    // Initialize mouse picking system
-    if (typeof initializeMousePicking !== 'undefined') {
-        initializeMousePicking();
-        
-        // Update picking data after graph is loaded
-        if (typeof updatePickingData !== 'undefined') {
-            updatePickingData();
+    gl.bindVertexArray(null);        // Initialize mouse picking system
+        if (typeof initializeMousePicking !== 'undefined') {
+            initializeMousePicking();
+            
+            // Update picking data after graph is loaded
+            if (typeof updatePickingData !== 'undefined') {
+                updatePickingData();
+            }
         }
-    }
+
+        // Update viewport to ensure proper rendering
+        if (typeof updateViewport === 'function') {
+            updateViewport();
+        }
 
         // debugUniforms(); // Call the debugging function to check uniform locations
 
         renderGraphWithFPS();
 
     } catch (error) {
-        if(offData !== ""){
-            console.log(`[ERROR] Error loading graph: ${error.message}`);
-            console.error("Graph initialization error:", error);
+        console.log(`[ERROR] Error loading graph: ${error.message}`);
+        console.error("Graph initialization error:", error);
+        
+        // Clear any partial state on error
+        if (sphereVAO) {
+            gl.deleteVertexArray(sphereVAO);
+            sphereVAO = null;
         }
+        if (pipeVAO) {
+            gl.deleteVertexArray(pipeVAO);
+            pipeVAO = null;
+        }
+        
+        throw error; // Re-throw for caller to handle
     }
 }

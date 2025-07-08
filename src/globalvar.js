@@ -17,7 +17,7 @@ New Functionality (to add)
 
 // Global variables and Default Data
 
-const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
+// const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
 const gl = canvas.getContext("webgl2", { 
     // antialias: true,
     antialias: false, // Disable antialiasing for now
@@ -91,10 +91,41 @@ let isAnimating = false; // Track if we're in continuous rendering mode
 let selectedEdges = []; // Array to store multiple selected edge IDs
 let edgeId = []; // Legacy compatibility array - mirrors selectedEdges for integration
 
+// Universal spacing support (parser-independent)
+let applySpacing = false; // Flag to apply node spacing for overlap removal
+let prevSpacing = false; // Previous state of applySpacing for comparison
+
 // Helper function to synchronize edgeId array with selectedEdges for integration compatibility
 function syncEdgeIdArray() {
     window.edgeId = [...window.selectedEdges];
-    console.log(`[INFO] edgeId array synchronized: [${window.edgeId.join(', ')}]`);
+}
+
+// Function to update viewport and projection matrix on canvas resize
+function updateViewport() {
+    if (gl && canvas) {
+        // Update WebGL viewport
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        
+        // Update projection matrix
+        mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+        
+        console.log(`Viewport updated to ${canvas.width}x${canvas.height}`);
+    }
+}
+
+// Function to handle canvas resize with proper WebGL context update
+function handleCanvasResize() {
+    if (canvas && gl) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        updateViewport();
+        
+        // Re-render the scene if render function is available
+        if (typeof renderGraph === 'function') {
+            renderGraph();
+        }
+    }
 }
 
 // Make sync function globally accessible
@@ -103,6 +134,10 @@ window.syncEdgeIdArray = syncEdgeIdArray;
 // Make selectedEdges and edgeId globally accessible
 window.selectedEdges = selectedEdges;
 window.edgeId = edgeId;
+
+// Make spacing variables globally accessible
+window.applySpacing = applySpacing;
+window.prevSpacing = prevSpacing;
 
 // Initialize edgeId array synchronization on page load
 document.addEventListener('DOMContentLoaded', function() {

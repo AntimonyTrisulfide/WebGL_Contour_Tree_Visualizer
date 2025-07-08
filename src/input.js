@@ -16,16 +16,18 @@ let hasMoved = false;
 
 
 // File input handler
-document.getElementById('fileInput').addEventListener('change', function () {
-    const file = this.files[0];
-    if (!file) {
-        return;
-    }
-    
-    if (!file.name.toLowerCase().endsWith('.off')) {
-        console.log('[ERROR] Please select a .off file');
-        return;
-    }    const reader = new FileReader();
+const fileInputElement = document.getElementById('fileInput');
+if (fileInputElement) {
+    fileInputElement.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) {
+            return;
+        }
+        
+        if (!file.name.toLowerCase().endsWith('.off')) {
+            console.log('[ERROR] Please select a .off file');
+            return;
+        }    const reader = new FileReader();
     reader.onload = function (e) {
         offData = e.target.result;
         currentFileName = file.name; // Store the file name
@@ -134,16 +136,16 @@ window.addEventListener('resize', () => {
 window.dispatchEvent(new Event('resize'));
 
 // Keyboard controls - Blender style navigation
-const keyState = {};
+window.keyState = {}; // Make it global so camera.js can access it
 const moveSpeed = 0.1;
 
 window.addEventListener('keydown', (e) => {
-    keyState[e.key.toLowerCase()] = true;
+    window.keyState[e.key.toLowerCase()] = true;
     handleCameraMovement();
 });
 
 window.addEventListener('keyup', (e) => {
-    keyState[e.key.toLowerCase()] = false;
+    window.keyState[e.key.toLowerCase()] = false;
 });
 
 // FPS Toggle Button Handler
@@ -186,4 +188,7 @@ window.onload = () => {
     else{
         console.log('[ERROR] Please select a .off file');
     }
+}
+} else {
+    console.log('[INFO] File input element not found, skipping OFF file handler');
 }

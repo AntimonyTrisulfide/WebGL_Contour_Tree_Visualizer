@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Parser Example - Contour Tree Visualizer</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../lib/gl-matrix-min.js"></script>
+    <script>
+        // Make gl-matrix components available globally
+        window.mat4 = glMatrix.mat4;
+        window.vec3 = glMatrix.vec3;
+        window.vec4 = glMatrix.vec4;
+        window.mat3 = glMatrix.mat3;
+    </script>
+    <!-- Core visualizer files (parser-independent) -->
+    <script src="../src/globalvar.js" defer></script>
+    <script src="../src/offParser.js"></script>
+    <script src="../src/universalParser.js"></script>
+    <script src="../src/primitives.js"></script>
+    <script src="../src/input.js" defer></script>
+    <script src="../src/camera.js"></script>
+    <script src="../src/initialize.js"></script>
+    <script src="../src/renderer.js"></script>
+    <script src="../src/mousePicking.js"></script>
+    <script src="../src/edgeInfo.js"></script>
+    <script src="../src/multipleEdgeInfo.js"></script>
+    <script src="../src/visualizerAPI.js"></script>
+    <script src="../src/debug.js"></script>
+</head>
+<body>
+    <div class="controls">
+        <div class="file-input-wrapper">
+            <input type="file" id="universalInput" accept=".json,.xml,.csv,.off">
+            <label for="universalInput" class="file-input-label">Load Tree Data (Any Format)</label>
+        </div>
+        <div class="file-input-wrapper">
+            <input type="file" id="fileInput" accept=".off" style="display: none;">
+            <label for="fileInput" class="file-input-label" style="display: none;">Load OFF File (Hidden)</label>
+        </div>
+        <button id="generateSample" class="file-input-label">Generate Sample Tree</button>
+        <button id="clearSelection" class="reset-button">Clear Selection</button>
+        <button id="toggleSpacing" class="reset-button">Toggle Spacing (P)</button>
+        <div class="fps-controls">
+            <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
+            <div id="fpsDisplay" class="fps-display">FPS: --</div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>Universal Parser Example</h3>
+        <p>This example demonstrates the universal parser system that automatically detects file types and uses the appropriate parser.</p>
+        <ul>
+            <li><strong>Supported Formats:</strong> JSON, XML, CSV, OFF</li>
+            <li><strong>Auto-Detection:</strong> File type detected by extension</li>
+            <li><strong>Extensible:</strong> Easy to add new parsers</li>
+            <li><strong>Sample Generator:</strong> Generate a sample tree programmatically</li>
+        </ul>
+        <p><strong>Controls:</strong> Use mouse to rotate, click to select edges, P to toggle spacing</p>
+    </div>
+
+    <div id="edgeInfoPanel" class="edge-info-panel collapsed">
+        <div class="edge-info-header" id="edgeInfoHeader">
+            <span class="edge-info-title">Edge Information</span>
+            <button class="edge-info-toggle" id="edgeInfoToggle">▼</button>
+        </div>
+        <div class="edge-info-content" id="edgeInfoContent">
+            <div class="edge-info-item">
+                <strong>Edge Number:</strong> <span id="edgeNumber">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Vertex:</strong> <span id="fromVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Vertex:</strong> <span id="toVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Type:</strong> <span id="fromVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Type:</strong> <span id="toVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Value:</strong> <span id="fromVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Value:</strong> <span id="toVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>Connection Type:</strong> <span id="connectionType">L-shaped</span>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Initialize viewport after canvas is set up
+        if (typeof updateViewport === 'function') {
+            updateViewport();
+        }
+
+        // Sample Tree Generator
+        function generateSampleTree() {
+            console.log('📝 Generating sample tree data...');
+            
+            // Create a simple tree structure
+            const vertices = [
+                [0, 0, 0],     // 0 - Root (minimum)
+                [-1, 1, 0],    // 1 - Left saddle
+                [1, 1, 0],     // 2 - Right saddle
+                [-2, 2, 0],    // 3 - Left maximum
+                [0, 2, 0],     // 4 - Center maximum
+                [2, 2, 0],     // 5 - Right maximum
+                [0, 3, 0]      // 6 - Top maximum
+            ];
+            
+            const edges = [
+                [0, 1],  // Root to left saddle
+                [0, 2],  // Root to right saddle
+                [1, 3],  // Left saddle to left maximum
+                [1, 4],  // Left saddle to center maximum
+                [2, 4],  // Right saddle to center maximum
+                [2, 5],  // Right saddle to right maximum
+                [4, 6]   // Center maximum to top maximum
+            ];
+            
+            const vertexTypes = [
+                NODE_TYPES.MINIMUM,  // 0
+                NODE_TYPES.SADDLE,   // 1
+                NODE_TYPES.SADDLE,   // 2
+                NODE_TYPES.MAXIMUM,  // 3
+                NODE_TYPES.MAXIMUM,  // 4
+                NODE_TYPES.MAXIMUM,  // 5
+                NODE_TYPES.MAXIMUM   // 6
+            ];
+            
+            const vertexValues = [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.5];
+            
+            console.log('✅ Sample Generator: Generated sample tree with', vertices.length, 'vertices');
+            return {
+                vertices,
+                edges,
+                vertexTypes,
+                vertexValues
+            };
+        }
+
+        // Visualizer configuration
+        function getVisualizerConfig() {
+            return {
+                lightConfig: {
+                    directions: {
+                        key: [0.5, 0.3, 0.8],
+                        fill: [-0.3, -0.4, 0.85],
+                        back: [0.0, 0.0, 1.0]
+                    },
+                    colors: {
+                        key: [1.0, 0.9, 0.7],
+                        fill: [0.7, 0.8, 1.0],
+                        back: [0.3, 0.3, 0.3]
+                    }
+                },
+                colors: {
+                    nodeColors: {
+                        [NODE_TYPES.MINIMUM]: [0.000, 0.000, 1.000, 1.0],   // Blue
+                        [NODE_TYPES.SADDLE]: [0.000, 1.000, 1.000, 1.0],    // Cyan
+                        [NODE_TYPES.MAXIMUM]: [1.000, 0.000, 0.000, 1.0]    // Red
+                    },
+                    pipeColor: [0.9, 0.9, 0.9, 1.0],
+                    backgroundColor: [0.1, 0.1, 0.1, 1.0]
+                },
+                globalVars: {
+                    sphereRadius: 0.1,
+                    pipeRadius: 0.02
+                }
+            };
+        }
+
+        // Function to check if tree data is different
+        function isTreeDataDifferent(newData, currentData) {
+            if (!currentData || !newData) return true;
+            
+            // Compare basic properties
+            if (newData.vertices?.length !== currentData.vertices?.length ||
+                newData.edges?.length !== currentData.edges?.length ||
+                newData.vertexTypes?.length !== currentData.vertexTypes?.length ||
+                newData.vertexValues?.length !== currentData.vertexValues?.length) {
+                return true;
+            }
+            
+            // Quick hash comparison for deeper changes
+            const newHash = JSON.stringify({
+                vertices: newData.vertices?.slice(0, 5), // Sample first 5 vertices
+                edges: newData.edges?.slice(0, 5),
+                vertexTypes: newData.vertexTypes?.slice(0, 5),
+                vertexValues: newData.vertexValues?.slice(0, 5)
+            });
+            
+            const currentHash = JSON.stringify({
+                vertices: currentData.vertices?.slice(0, 5),
+                edges: currentData.edges?.slice(0, 5),
+                vertexTypes: currentData.vertexTypes?.slice(0, 5),
+                vertexValues: currentData.vertexValues?.slice(0, 5)
+            });
+            
+            return newHash !== currentHash;
+        }
+
+        // Visualize parsed data
+        function visualizeTreeData(treeData, sourceName) {
+            console.log(`🎨 Visualizing tree data from ${sourceName}...`);
+            
+            // Force complete reinitialization when loading different data
+            if (window.currentTreeData && isTreeDataDifferent(treeData, window.currentTreeData)) {
+                console.log('🔄 Different data detected, forcing complete reinitialization...');
+                if (typeof forceCompleteReinitialization === 'function') {
+                    forceCompleteReinitialization();
+                } else if (typeof window.forceCompleteReinitialization === 'function') {
+                    window.forceCompleteReinitialization();
+                }
+            }
+            
+            // Store the current tree data globally for spacing toggle and other operations
+            window.currentTreeData = treeData;
+            window.treeData = treeData; // Also store in the location the visualizer expects
+            
+            const config = getVisualizerConfig();
+            
+            if (typeof invokeContourTreeVisualizer === 'function') {
+                const result = invokeContourTreeVisualizer(
+                    treeData,
+                    config.lightConfig,
+                    config.colors,
+                    config.globalVars,
+                    [] // No initial edge selection
+                );
+                
+                if (result.success) {
+                    console.log(`✅ Successfully visualized ${sourceName} data:`, result.message);
+                } else {
+                    console.error(`❌ Failed to visualize ${sourceName} data:`, result.message);
+                }
+            } else {
+                console.error('❌ Visualizer API not available');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up universal file input
+            setupUniversalFileInput('universalInput', 
+                function(treeData, filename) {
+                    // Success callback
+                    const fileType = filename.substring(filename.lastIndexOf('.'));
+                    visualizeTreeData(treeData, `${fileType.toUpperCase()} File (${filename})`);
+                },
+                function(error, filename) {
+                    // Error callback
+                    alert(`Error parsing ${filename}: ${error.message}`);
+                }
+            );
+
+            // Generate sample button
+            document.getElementById('generateSample').addEventListener('click', function() {
+                const treeData = generateSampleTree();
+                visualizeTreeData(treeData, 'Sample Generator');
+            });
+
+            // Clear selection button
+            document.getElementById('clearSelection').addEventListener('click', function() {
+                if (typeof clearEdgeSelection === 'function') {
+                    clearEdgeSelection();
+                }
+            });
+
+            // Toggle spacing button
+            document.getElementById('toggleSpacing').addEventListener('click', function() {
+                if (typeof applySpacing !== 'undefined') {
+                    applySpacing = !applySpacing;
+                    console.log('🔄 Spacing toggled to:', applySpacing);
+                    
+                    // Re-visualize with current data if available
+                    if (window.currentTreeData) {
+                        visualizeTreeData(window.currentTreeData, 'Current (Spacing Toggled)');
+                    } else {
+                        console.log('⚠️ No current tree data to re-visualize');
+                    }
+                } else {
+                    console.log('❌ Spacing toggle not available');
+                }
+            });
+
+            // Initialize global variables needed by the system
+            window.offData = ''; // Empty string to prevent undefined errors
+            window.currentFileName = 'universal-parser-example';
+            
+            // Set up canvas resize handler
+            window.addEventListener('resize', function() {
+                if (typeof handleCanvasResize === 'function') {
+                    handleCanvasResize();
+                } else {
+                    // Fallback implementation
+                    const canvas = document.getElementById('canvas');
+                    if (canvas && gl) {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                        
+                        // Update WebGL viewport
+                        gl.viewport(0, 0, canvas.width, canvas.height);
+                        
+                        // Update projection matrix
+                        mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+                        
+                        // Re-render the scene
+                        if (typeof renderGraph === 'function') {
+                            renderGraph();
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>
