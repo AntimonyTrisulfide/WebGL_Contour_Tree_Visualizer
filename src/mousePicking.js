@@ -412,19 +412,6 @@ function handleMousePick(mouseX, mouseY, event = null) {
                 
                 // Update selectedEdge for backward compatibility (use last selected)
                 selectedEdge = window.selectedEdges.length > 0 ? window.selectedEdges[window.selectedEdges.length - 1] : null;
-            } else {
-                // Regular click: select only this edge
-                window.selectedEdges = [edgeIndex];
-                selectedEdge = edgeIndex; // Keep for backward compatibility
-                console.log(`[SUCCESS] Edge ${edgeIndex} selected`);
-                // --- Broadcast selection to other windows (test page) ---
-                if (window.openedTestWindow && !window.openedTestWindow.closed) {
-                    window.openedTestWindow.postMessage(
-                        { type: 'selectedEdgesUpdate', selectedEdges: window.selectedEdges },
-                        '*'
-                    );
-                }
-                // --YOU CAN ADD OTHER LOGIC HERE ASWELL TO HANDLE FOR CLICKS--
             }
             
             const edgeSelectInput = document.getElementById('edgeSelect');
