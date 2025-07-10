@@ -590,3 +590,11 @@ if (document.readyState === 'loading') {
     // Make it globally accessible
     window.menuSystem = menuSystem;
 }
+
+// Update lighting configuration on load
+if (typeof updateLightingConfiguration === 'function') {
+    updateLightingConfiguration({
+        lightDirection: [0, 0, 1],
+        lightColor: [1.0, 1.0, 1.0]
+    });
+}

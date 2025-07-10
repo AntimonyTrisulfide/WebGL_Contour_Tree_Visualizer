@@ -67,122 +67,6 @@ function invokeContourTreeVisualizer(treeData, lightConfig, colors, globalVars, 
 }
 
 /**
- * Add an edge to the selection
- * @param {number} edgeId - The edge ID to add
- */
-function addEdgeToSelection(edgeId) {
-    if (!window.selectedEdges.includes(edgeId)) {
-        window.selectedEdges.push(edgeId);
-        
-        // Synchronize edgeId array for integration compatibility
-        if (typeof window.syncEdgeIdArray === 'function') {
-            window.syncEdgeIdArray();
-        }
-        
-        updateEdgeDisplay();
-        updateVisualization();
-    }
-}
-
-/**
- * Remove an edge from the selection
- * @param {number} edgeId - The edge ID to remove
- */
-function removeEdgeFromSelection(edgeId) {
-    const index = window.selectedEdges.indexOf(edgeId);
-    if (index > -1) {
-        window.selectedEdges.splice(index, 1);
-        
-        // Synchronize edgeId array for integration compatibility
-        if (typeof window.syncEdgeIdArray === 'function') {
-            window.syncEdgeIdArray();
-        }
-        
-        updateEdgeDisplay();
-        updateVisualization();
-    }
-}
-
-/**
- * Clear all selected edges
- */
-function clearEdgeSelection() {
-    window.selectedEdges = [];
-    
-    // Synchronize edgeId array for integration compatibility
-    if (typeof window.syncEdgeIdArray === 'function') {
-        window.syncEdgeIdArray();
-    }
-    
-    updateEdgeDisplay();
-    updateVisualization();
-    
-    // Update menu system if available
-    if (typeof menuSystem !== 'undefined' && menuSystem.updateOnEdgeSelectionChange) {
-        menuSystem.updateOnEdgeSelectionChange(0);
-    }
-}
-
-/**
- * Get current selected edges
- * @returns {Array} Array of selected edge IDs
- */
-function getSelectedEdges() {
-    return [...window.selectedEdges];
-}
-
-/**
- * Update the selected edges array and trigger visualization update
- * This is the main function you should call with an array of edge IDs
- * @param {Array} edgeIds - Array of edge IDs to highlight and display info for
- * @returns {Object} Result object with success status
- */
-function updateSelectedEdges(edgeIds = []) {
-    try {
-        console.log('updateSelectedEdges called with:', edgeIds);
-        
-        // Update the global selected edges array
-        window.selectedEdges = [...edgeIds];
-        
-        // Synchronize edgeId array for integration compatibility
-        if (typeof window.syncEdgeIdArray === 'function') {
-            window.syncEdgeIdArray();
-        }
-        
-        // Update edge highlighting
-        if (typeof updateMultipleEdgeHighlighting === 'function') {
-            updateMultipleEdgeHighlighting();
-        }
-        
-        // Update edge info display
-        if (typeof updateMultipleEdgeInfo === 'function') {
-            updateMultipleEdgeInfo(window.selectedEdges);
-        } else if (typeof updateEdgeInfo === 'function' && window.selectedEdges.length > 0) {
-            updateEdgeInfo(window.selectedEdges[0]); // Fallback to single edge
-        }
-        
-        // Re-render the scene
-        if (typeof renderGraph === 'function') {
-            renderGraph();
-        }
-        
-        console.log(`Successfully updated ${edgeIds.length} selected edges`);
-        return {
-            selectedEdges: [...window.selectedEdges],
-            success: true,
-            message: `Updated ${edgeIds.length} selected edges`
-        };
-    } catch (error) {
-        console.error('Error updating selected edges:', error);
-        return {
-            selectedEdges: [],
-            success: false,
-            message: `Error updating selected edges: ${error.message}`
-        };
-    }
-}
-
-/**
  * Set selected edges
  * @param {Array} edgeIds - Array of edge IDs to select
  */
@@ -485,22 +369,9 @@ function getCurrentGlobalParameters() {
     };
 }
 
-/**
- * Get current edgeId array (legacy compatibility array that mirrors selectedEdges)
- * @returns {Array} Array of edge IDs (same as selectedEdges)
- */
-function getEdgeId() {
-    return window.edgeId ? [...window.edgeId] : [];
-}
-
 // Export the main function for external use
 window.invokeContourTreeVisualizer = invokeContourTreeVisualizer;
-window.addEdgeToSelection = addEdgeToSelection;
-window.removeEdgeFromSelection = removeEdgeFromSelection;
-window.clearEdgeSelection = clearEdgeSelection;
 window.getSelectedEdges = getSelectedEdges;
-window.getEdgeId = getEdgeId; // Legacy compatibility getter
-window.updateSelectedEdges = updateSelectedEdges;
 
 // Also expose the individual functions globally immediately
 window.setSelectedEdges = setSelectedEdges;
@@ -514,4 +385,3 @@ window.updateGlobalParameters = updateGlobalParameters;
 window.getCurrentLightingConfiguration = getCurrentLightingConfiguration;
 window.getCurrentColorConfiguration = getCurrentColorConfiguration;
 window.getCurrentGlobalParameters = getCurrentGlobalParameters;
-window.getEdgeId = getEdgeId;

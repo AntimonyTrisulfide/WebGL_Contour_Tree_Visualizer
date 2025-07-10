@@ -231,16 +231,23 @@
             window.treeData = treeData; // Also store in the location the visualizer expects
             
             const config = getVisualizerConfig();
-            
+
             if (typeof invokeContourTreeVisualizer === 'function') {
                 const result = invokeContourTreeVisualizer(
                     treeData,
-                    config.lightConfig,
+                    {
+                        directions: {
+                            main: [0.0, 0.0, 1.0]
+                        },
+                        colors: {
+                            main: [1.0, 1.0, 1.0]
+                        }
+                    },
                     config.colors,
                     config.globalVars,
                     [] // No initial edge selection
                 );
-                
+
                 if (result.success) {
                     console.log(`✅ Successfully visualized ${sourceName} data:`, result.message);
                 } else {

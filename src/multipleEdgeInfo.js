@@ -219,7 +219,7 @@ function createEdgeTab(edgeData, index) {
                 ${getVertexTypeString(edgeData.fromType)} → ${getVertexTypeString(edgeData.toType)}
             </div>
             <button class="edge-tab-toggle">${isExpanded ? '▼' : '▶'}</button>
-            <button class="edge-tab-remove" onclick="removeEdgeFromSelection(${edgeData.edgeIndex}); event.stopPropagation();">×</button>
+            <!-- <button class="edge-tab-remove" onclick="removeEdgeFromSelection(${edgeData.edgeIndex}); event.stopPropagation();">×</button> -->
         </div>
         <div class="edge-tab-content" ${isExpanded ? '' : 'style="display: none;"'}>
             <div class="edge-info-grid">

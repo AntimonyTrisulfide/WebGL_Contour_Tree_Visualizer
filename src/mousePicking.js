@@ -23,6 +23,11 @@ function initializeMousePicking() {
     createPickingVAO();
 }
 
+// Expose a getter for selected edges for external API access
+window.getSelectedEdges = function() {
+    return window.selectedEdges ? [...window.selectedEdges] : [];
+};
+
 // Create picking VAO and initialize buffers
 function createPickingVAO() {
     if (pickingVAO) {
@@ -364,6 +369,7 @@ function handleMousePick(mouseX, mouseY, event = null) {
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+
     // Check if we hit an edge
     if (pixel[0] === 0 && pixel[1] === 0 && pixel[2] === 0) {
         // Clicked on background - do nothing to preserve selections
@@ -383,15 +389,25 @@ function handleMousePick(mouseX, mouseY, event = null) {
                     // Edge is selected, remove it
                     window.selectedEdges.splice(edgeIndexInSelection, 1);
                     console.log(`[INFO] Edge ${edgeIndex} removed from selection`);
+                    if (window.openedTestWindow && !window.openedTestWindow.closed) {
+                        window.openedTestWindow.postMessage(
+                            { type: 'selectedEdgesUpdate', selectedEdges: window.selectedEdges },
+                            '*'
+                        );
+                    }
+                    // --YOU CAN ADD OTHER LOGIC HERE ASWELL TO HANDLE FOR CLICKS--
                 } else {
                     // Edge is not selected, add it
                     window.selectedEdges.push(edgeIndex);
                     console.log(`[SUCCESS] Edge ${edgeIndex} added to selection`);
-                }
-                
-                // Synchronize edgeId array with selectedEdges for integration compatibility
-                if (typeof window.syncEdgeIdArray === 'function') {
-                    window.syncEdgeIdArray();
+                    // --- Broadcast selection to other windows (test page) ---
+                    if (window.openedTestWindow && !window.openedTestWindow.closed) {
+                        window.openedTestWindow.postMessage(
+                            { type: 'selectedEdgesUpdate', selectedEdges: window.selectedEdges },
+                            '*'
+                        );
+                    }
+                    // --YOU CAN ADD OTHER LOGIC HERE ASWELL TO HANDLE FOR CLICKS--
                 }
                 
                 // Update selectedEdge for backward compatibility (use last selected)
@@ -401,11 +417,14 @@ function handleMousePick(mouseX, mouseY, event = null) {
                 window.selectedEdges = [edgeIndex];
                 selectedEdge = edgeIndex; // Keep for backward compatibility
                 console.log(`[SUCCESS] Edge ${edgeIndex} selected`);
-                
-                // Synchronize edgeId array with selectedEdges for integration compatibility
-                if (typeof window.syncEdgeIdArray === 'function') {
-                    window.syncEdgeIdArray();
+                // --- Broadcast selection to other windows (test page) ---
+                if (window.openedTestWindow && !window.openedTestWindow.closed) {
+                    window.openedTestWindow.postMessage(
+                        { type: 'selectedEdgesUpdate', selectedEdges: window.selectedEdges },
+                        '*'
+                    );
                 }
+                // --YOU CAN ADD OTHER LOGIC HERE ASWELL TO HANDLE FOR CLICKS--
             }
             
             const edgeSelectInput = document.getElementById('edgeSelect');

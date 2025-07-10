@@ -5,10 +5,8 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec3 uCameraPos;
-uniform vec3 uLight1Dir;
-uniform vec3 uLight1Color;
-uniform vec3 uLight2Dir;
-uniform vec3 uLight2Color;
+uniform vec3 uLightDir;
+uniform vec3 uLightColor;
 
 in vec2 vTexCoord;
 in vec3 vWorldPos;
@@ -68,21 +66,15 @@ void main() {
         normalDotView = max(0.0, dot(worldNormal, viewDir));
     }
     
-    // Light directions (matching pipe shader)
-    vec3 light1Dir = normalize(uLight1Dir);
-    vec3 light2Dir = normalize(uLight2Dir);
+    // Light direction (matching pipe shader)
+    vec3 lightDir = normalize(uLightDir);
     
-    // Half vectors for Blinn-Phong
-    vec3 halfVector1 = normalize(light1Dir + viewDir);
-    vec3 halfVector2 = normalize(light2Dir + viewDir);
+    // Half vector for Blinn-Phong
+    vec3 halfVector = normalize(lightDir + viewDir);
     
-    // Calculate diffuse contributions with improved falloff
-    float diffuse1 = max(0.0, dot(worldNormal, light1Dir));
-    float diffuse2 = max(0.0, dot(worldNormal, light2Dir));
-    
-    // Improved specular calculation with restored shininess
-    float specular1 = pow(max(0.0, dot(worldNormal, halfVector1)), 32.0); // Restored high shininess
-    float specular2 = pow(max(0.0, dot(worldNormal, halfVector2)), 32.0); // Made equal for balanced lighting
+    // Calculate diffuse and specular contributions with improved falloff
+    float diffuse = max(0.0, dot(worldNormal, lightDir));
+    float specular = pow(max(0.0, dot(worldNormal, halfVector)), 32.0); // Restored high shininess
     
     // EXTREMELY SUBTLE RIM LIGHTING FOR SPHERES
     // Use very gentle rim lighting effect for spheres
@@ -96,22 +88,19 @@ void main() {
     vec3 baseColor = vInstanceColor;
     
     // Reduced ambient calculation with subtle tint
-    vec3 ambient = baseColor * 0.25 * vec3(0.9, 0.95, 1.0);
+    vec3 ambient = baseColor * 0.3;
     
     // Reduced diffuse with better light balance
-    vec3 diffuseContrib1 = baseColor * diffuse1 * uLight1Color * 0.4;
-    vec3 diffuseContrib2 = baseColor * diffuse2 * uLight2Color * 0.4;
+    vec3 diffuseContrib = baseColor * diffuse * uLightColor * 0.6;
     
     // Slightly enhanced specular highlights with very subtle rim lighting
-    vec3 specularContrib1 = uLight1Color * (specular1 + specularEnhancement) * 0.5;
-    vec3 specularContrib2 = uLight2Color * (specular2 + specularEnhancement) * 0.5;
+    vec3 specularContrib = uLightColor * (specular + specularEnhancement) * 0.8;
     
     // Extremely subtle rim lighting for spheres
-    vec3 rimContrib = vec3(0.05, 0.08, 0.1) * rimLight * 0.02;
+    vec3 rimContrib = vec3(0.05, 0.08, 0.1) * rimLight * 0.06;
     
     // Combine all contributions with better balance
-    vec3 finalColor = ambient + diffuseContrib1 + diffuseContrib2 + 
-                     specularContrib1 + specularContrib2 + rimContrib;
+    vec3 finalColor = ambient + diffuseContrib + specularContrib + rimContrib;
     
     fragColor = vec4(finalColor, 1.0);
 }

@@ -1,6 +1,108 @@
 // Parser-independent input system
 // This system can detect file types and route to appropriate parsers
 
+// // Parse OFF data
+function parseOFFData(data) {
+    const lines = data.trim().split('\n').map(line => line.trim());
+    
+    // Skip the OFF header
+    let currentLine = 1;
+    
+    // Parse counts (vertices, faces, edges)
+    const counts = lines[currentLine].split(/\s+/).map(Number);
+    const numVertices = counts[0];
+    const numFaces = counts[1];
+    currentLine++;
+    
+    // Parse vertices (only coordinates now)
+    let vertices = [];
+    
+    for (let i = 0; i < numVertices; i++) {
+        const parts = lines[currentLine].split(/\s+/);
+        
+        // Extract coordinates (first 3 values)
+        const coords = [
+            parseFloat(parts[0]),
+            parseFloat(parts[1]),
+            parseFloat(parts[2])
+        ];
+        
+        vertices.push(coords);
+        currentLine++;
+    }
+    
+    // Initialize arrays for vertex data
+    const vertexValues = new Array(numVertices);
+    const vertexTypes = new Array(numVertices);
+    
+    // Parse edges and extract vertex data
+    const edges = [];
+    for (let i = 0; i < numFaces; i++) {
+        // Format 2 v1 v2 val1 val2 type1 type2
+        const parts = lines[currentLine].split(/\s+/);
+        if (parts.length < 7 || parts[0] !== '2') {
+            console.warn(`Skipping malformed or unsupported edge line: ${lines[currentLine - 1]}`);
+            continue;
+        }
+
+        const v1 = parseInt(parts[1]);
+        const v2 = parseInt(parts[2]);
+        const val1 = parseFloat(parts[3]);
+        const val2 = parseFloat(parts[4]);
+        const type1 = getNodeType(parts[5]);
+        const type2 = getNodeType(parts[6]);
+
+        // Assign vertex 1
+        if (vertexValues[v1] === undefined) {
+            vertexValues[v1] = val1;
+            vertexTypes[v1] = type1;
+        }
+
+        // Assign vertex 2
+        if (vertexValues[v2] === undefined) {
+            vertexValues[v2] = val2;
+            vertexTypes[v2] = type2;
+        }
+
+        edges.push([v1, v2]);
+        currentLine++;
+    }
+    
+    // Fill any missing vertex data with defaults
+    for (let i = 0; i < numVertices; i++) {
+        if (vertexValues[i] === undefined) {
+            vertexValues[i] = 0.0;
+            vertexTypes[i] = NODE_TYPES.SADDLE;
+            console.warn(`Missing data for vertex ${i}, using defaults`);
+        }
+    }  
+
+    // Apply node spacing to vertices
+    if(window.applySpacing === true) {
+        vertices = applyNodeSpacing(vertices, sphereRadius, vertexValues, vertexTypes);
+    }
+
+    if(window.applySpacing === false){
+        // use original vertices
+        vertices = vertices.map(vertex => [
+            vertex[0],
+            vertex[1],
+            vertex[2]
+        ]);
+    }
+
+    validVertices = [...vertices];
+    validTypes = [...vertexTypes];  // Vertex Types now get from OFF data 
+
+    
+    return { 
+        vertices, 
+        edges, 
+        vertexValues, 
+        vertexTypes 
+    };
+}
+
 // Registry of parsers
 const parserRegistry = {
     '.off': function(data) {

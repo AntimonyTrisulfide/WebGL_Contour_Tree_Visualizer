@@ -6,10 +6,8 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec3 uCameraPos;
-uniform vec3 uLight1Dir;
-uniform vec3 uLight1Color;
-uniform vec3 uLight2Dir;
-uniform vec3 uLight2Color;
+uniform vec3 uLightDir;
+uniform vec3 uLightColor;
 
 // Inputs to the fragment shader
 in vec3 vCylStart;
@@ -196,20 +194,14 @@ void main() {
     }
     
     // Use uniform-based dual-tone lighting (camera headlamp style)
-    vec3 light1Dir = normalize(uLight1Dir);
-    vec3 light2Dir = normalize(uLight2Dir);
-    
-    // Calculate half vectors for specular
-    vec3 halfVector1 = normalize(light1Dir + viewDir);
-    vec3 halfVector2 = normalize(light2Dir + viewDir);
+    vec3 lightDir = normalize(uLightDir);
+    vec3 halfVector = normalize(lightDir + viewDir);
     
     // Calculate diffuse contributions with improved falloff
-    float diffuse1 = max(0.0, dot(worldNormal, light1Dir));
-    float diffuse2 = max(0.0, dot(worldNormal, light2Dir));
+    float diffuse = max(0.0, dot(worldNormal, lightDir));
     
     // Improved specular calculation with restored shininess
-    float specular1 = pow(max(0.0, dot(worldNormal, halfVector1)), 32.0); // Restored high shininess
-    float specular2 = pow(max(0.0, dot(worldNormal, halfVector2)), 32.0); // Made equal for balanced lighting
+    float specular = pow(max(0.0, dot(worldNormal, halfVector)), 32.0); // Restored high shininess
     
     // RIM LIGHTING FOR CYLINDERS - More prominent effect
     // Use fresnel-like effect for more natural rim lighting behavior
@@ -223,22 +215,19 @@ void main() {
     vec3 baseColor = vInstanceColor;
     
     // Reduced ambient calculation with subtle tint
-    vec3 ambient = baseColor * 0.25 * vec3(0.9, 0.95, 1.0);
+    vec3 ambient = baseColor * 0.3;
     
     // Reduced diffuse with better light balance
-    vec3 diffuseContrib1 = baseColor * diffuse1 * uLight1Color * 0.4;
-    vec3 diffuseContrib2 = baseColor * diffuse2 * uLight2Color * 0.4;
+    vec3 diffuseColor = baseColor * diffuse * uLightColor * 0.6;
     
     // Enhanced specular highlights with rim lighting
-    vec3 specularContrib1 = uLight1Color * (specular1 + specularEnhancement) * 0.5;
-    vec3 specularContrib2 = uLight2Color * (specular2 + specularEnhancement) * 0.5;
+    vec3 specularColor = vec3(1.0) * (specular + specularEnhancement) * 0.8;
     
     // Rim lighting for better cylinder shape definition
-    vec3 rimContrib = vec3(0.15, 0.2, 0.25) * rimLight * 0.08;
+    vec3 rimContrib = vec3(0.15, 0.2, 0.25) * rimLight * 0.15;
     
     // Combine all contributions with better balance
-    vec3 finalColor = ambient + diffuseContrib1 + diffuseContrib2 + 
-                     specularContrib1 + specularContrib2 + rimContrib;
+    vec3 finalColor = ambient + diffuseColor + specularColor + rimContrib;
     
     fragColor = vec4(finalColor, 1.0);
 }

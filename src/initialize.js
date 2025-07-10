@@ -274,16 +274,6 @@ async function initializeGraph(offData = null) {
                 validVertices = [...vertices];
                 validTypes = [...vertexTypes];
                 
-            } else if (typeof offData !== 'undefined' && offData) {
-                // Fallback: parse OFF data if no tree data is provided via API
-                prevOffData = offData; // Update previous OFF data
-                window.prevSpacing = window.applySpacing; // Update previous spacing
-                const parsedData = parseOFFData(offData);
-                vertices = parsedData.vertices;
-                edges = parsedData.edges;
-                vertexTypes = parsedData.vertexTypes;
-                vertexValues = parsedData.vertexValues;
-                console.log("Using OFF data fallback");
             } else {
                 throw new Error("No tree data available from API or OFF data");
             }
@@ -361,20 +351,18 @@ async function initializeGraph(offData = null) {
                 uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
                 uColorLocation: gl.getUniformLocation(sphereProgram, "uColor"),
                 uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix"),
-                uLight1Dir: gl.getUniformLocation(sphereProgram, "uLight1Dir"),
-                uLight1Color: gl.getUniformLocation(sphereProgram, "uLight1Color"),
-                uLight2Dir: gl.getUniformLocation(sphereProgram, "uLight2Dir"),
-                uLight2Color: gl.getUniformLocation(sphereProgram, "uLight2Color")
-            };            gl.useProgram(pipeProgram);            pipeUniforms = {
+                uLightDir: gl.getUniformLocation(sphereProgram, "uLightDir"),
+                uLightColor: gl.getUniformLocation(sphereProgram, "uLightColor")
+            };            
+            gl.useProgram(pipeProgram);           
+            pipeUniforms = {
                 uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
                 uCameraPos: gl.getUniformLocation(pipeProgram, "uCameraPos"),
                 uInvViewMatrix: gl.getUniformLocation(pipeProgram, "uInvViewMatrix"),
-                uLight1Dir: gl.getUniformLocation(pipeProgram, "uLight1Dir"),
-                uLight1Color: gl.getUniformLocation(pipeProgram, "uLight1Color"),
-                uLight2Dir: gl.getUniformLocation(pipeProgram, "uLight2Dir"),
-                uLight2Color: gl.getUniformLocation(pipeProgram, "uLight2Color")
+                uLightDir: gl.getUniformLocation(pipeProgram, "uLightDir"),
+                uLightColor: gl.getUniformLocation(pipeProgram, "uLightColor")
             };
         }
 
