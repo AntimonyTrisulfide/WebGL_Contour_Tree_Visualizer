@@ -65,7 +65,7 @@ projectionMatrix = mat4.create();
 // mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.01, 1000);
 
 // Temporarily use a tighter range to see if the issue persists
-mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.01, 1000);
 viewMatrix = mat4.create();
 modelMatrix = mat4.create();
 mat4.identity(modelMatrix);

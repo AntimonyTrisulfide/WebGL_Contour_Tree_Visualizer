@@ -563,8 +563,8 @@ function updatePipeHighlighting() {
     if (!pipeInstanceBuffer) {
         console.warn('Pipe instance buffer not available, reinitializing graph');
         // If buffer doesn't exist, we need to reinitialize
-        if (typeof offData !== 'undefined' && offData) {
-            initializeGraph(offData);
+        if (window.treeData) {
+            initializeGraph(window.treeData);
         }
         return;
     }

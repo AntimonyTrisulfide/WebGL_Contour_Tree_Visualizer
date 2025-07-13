@@ -5,6 +5,9 @@
 let selectedEdge = null; // Track the selected edge number (1-based index) // Used by Renderer.js for highlighting (deprecated - use selectedEdges)
 let currentFileName = null; // Track the currently loaded file name
 
+// Use a single parser-independent data object
+window.treeData = undefined;
+
 // Flags and variables for storing mouse state
 let isDraggingInput = false;
 let lastMouseX = 0;
@@ -15,7 +18,7 @@ let mouseDownY = 0;
 let hasMoved = false;
 
 
-// File input handler
+// File input handler (parser-independent)
 const fileInputElement = document.getElementById('fileInput');
 if (fileInputElement) {
     fileInputElement.addEventListener('change', function () {
@@ -23,26 +26,33 @@ if (fileInputElement) {
         if (!file) {
             return;
         }
-        
         if (!file.name.toLowerCase().endsWith('.off')) {
             console.log('[ERROR] Please select a .off file');
             return;
-        }    const reader = new FileReader();
-    reader.onload = function (e) {
-        offData = e.target.result;
-        currentFileName = file.name; // Store the file name
-        console.log(`[SUCCESS] Loaded file: ${file.name}`);
-        // change color of the button
-        document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F'; // Green color for success
-        
-        // Update file name in sidebar if menu system is available
-        if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
-            menuSystem.updateCurrentFileName(file.name);
         }
-        
-        initializeGraph(offData);
-    };reader.readAsText(file);
-});
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            // Use universalParser to parse the file
+            try {
+                const parsed = parseFile(file.name, e.target.result);
+                window.treeData = parsed;
+                currentFileName = file.name;
+                console.log(`[SUCCESS] Loaded and parsed file: ${file.name}`);
+                document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F';
+                if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
+                    menuSystem.updateCurrentFileName(file.name);
+                }
+                // Call parser-independent initializer
+                if (typeof initializeGraph === 'function') {
+                    initializeGraph(window.treeData);
+                }
+            } catch (err) {
+                console.error('[ERROR] Failed to parse file:', err);
+            }
+        };
+        reader.readAsText(file);
+    });
+}
 
 // Mouse controls
 canvas.addEventListener('mousedown', (e) => {
@@ -180,15 +190,13 @@ window.onload = () => {
     if (typeof initializeEdgeInfoPanel !== 'undefined') {
         initializeEdgeInfoPanel();
     }
-    
-    //Load default OFF file if available
-    if(offData !== "") {
-        initializeGraph(offData);
-    }
-    else{
-        console.log('[ERROR] Please select a .off file');
+    // If treeData is available (e.g., set by another loader), initialize
+    if (window.treeData) {
+        if (typeof initializeGraph === 'function') {
+            initializeGraph(window.treeData);
+        }
+    } else {
+        console.log('[ERROR] Please select a file to load tree data');
     }
 }
-} else {
-    console.log('[INFO] File input element not found, skipping OFF file handler');
-}
+// ...existing code...

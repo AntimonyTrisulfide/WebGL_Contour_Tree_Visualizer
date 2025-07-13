@@ -163,25 +163,19 @@ function handleCameraMovement() {
     // P - Toggle spacing (universal functionality)
     if (window.keyState['p']) {
         window.keyState['p'] = false; // Prevent continuous triggering
-        
         // Toggle the spacing flag
         if (typeof window.applySpacing !== 'undefined') {
             window.applySpacing = !window.applySpacing;
             console.log(`[INFO] Spacing ${window.applySpacing ? 'enabled' : 'disabled'}`);
-            
             // Re-initialize with current data
             if (window.currentTreeData) {
                 console.log('[INFO] Re-initializing with current tree data (spacing toggled)');
                 // Update the global treeData and re-initialize
                 window.treeData = window.currentTreeData;
-                initializeGraph(); // Call without offData for API data
-            } else if (typeof offData !== 'undefined' && offData) {
-                console.log('[INFO] Re-initializing with OFF data (spacing toggled)');
-                initializeGraph(offData);
+                initializeGraph(); // Always call without offData
             } else {
                 console.log('[WARNING] No data available to re-initialize with spacing toggle');
             }
-            
             renderGraphWithFPS();
         } else {
             console.log('[WARNING] applySpacing variable not available');
