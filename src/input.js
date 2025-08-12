@@ -2,11 +2,14 @@
 
 
 // Variables
-let selectedEdge = null; // Track the selected edge number (1-based index) // Used by Renderer.js for highlighting
+let selectedEdge = null; // Track the selected edge number (1-based index) // Used by Renderer.js for highlighting (deprecated - use selectedEdges)
 let currentFileName = null; // Track the currently loaded file name
 
+// Use a single parser-independent data object
+window.treeData = undefined;
+
 // Flags and variables for storing mouse state
-let isDragging = false;
+let isDraggingInput = false;
 let lastMouseX = 0;
 let lastMouseY = 0;
 let mouseSensitivity = 0.005; // Sensitivity for mouse movement (will be updated by parameter system)
@@ -15,49 +18,57 @@ let mouseDownY = 0;
 let hasMoved = false;
 
 
-// File input handler
-document.getElementById('fileInput').addEventListener('change', function () {
-    const file = this.files[0];
-    if (!file) {
-        return;
-    }
-    
-    if (!file.name.toLowerCase().endsWith('.off')) {
-        showStatus('Please select a .off file', 'error');
-        return;
-    }    const reader = new FileReader();
-    reader.onload = function (e) {
-        offData = e.target.result;
-        currentFileName = file.name; // Store the file name
-        showStatus(`Loaded file: ${file.name}`, 'success');
-        // change color of the button
-        document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F'; // Green color for success
-        
-        // Update file name in sidebar if menu system is available
-        if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
-            menuSystem.updateCurrentFileName(file.name);
+// File input handler (parser-independent)
+const fileInputElement = document.getElementById('fileInput');
+if (fileInputElement) {
+    fileInputElement.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) {
+            return;
         }
-        
-        initializeGraph(offData);
-    };reader.readAsText(file);
-});
+        if (!file.name.toLowerCase().endsWith('.off')) {
+            console.log('[ERROR] Please select a .off file');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            // Use universalParser to parse the file
+            try {
+                const parsed = parseFile(file.name, e.target.result);
+                window.treeData = parsed;
+                currentFileName = file.name;
+                console.log(`[SUCCESS] Loaded and parsed file: ${file.name}`);
+                document.getElementById('fileInputWrapper').style.backgroundColor = '#F0FF0F';
+                if (typeof menuSystem !== 'undefined' && menuSystem.updateCurrentFileName) {
+                    menuSystem.updateCurrentFileName(file.name);
+                }
+                // Call parser-independent initializer
+                if (typeof initializeGraph === 'function') {
+                    initializeGraph(window.treeData);
+                }
+            } catch (err) {
+                console.error('[ERROR] Failed to parse file:', err);
+            }
+        };
+        reader.readAsText(file);
+    });
+}
 
 // Mouse controls
 canvas.addEventListener('mousedown', (e) => {
-    isDragging = true;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-    mouseDownX = e.clientX;
-    mouseDownY = e.clientY;
-    hasMoved = false;
+    if (e.button === 0) { // Left mouse button only
+        isDraggingInput = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        mouseDownX = e.clientX;
+        mouseDownY = e.clientY;
+        hasMoved = false;
+    }
 });
 
 canvas.addEventListener('mousemove', (e) => {
-    if (isDragging) {
-        const deltaX = e.clientX - lastMouseX;
-        const deltaY = e.clientY - lastMouseY;
-        
-        // Check if mouse has moved significantly
+    if (isDraggingInput) {
+        // Left mouse button rotation - handled by camera.js
         const moveDistance = Math.sqrt(
             Math.pow(e.clientX - mouseDownX, 2) + 
             Math.pow(e.clientY - mouseDownY, 2)
@@ -66,39 +77,30 @@ canvas.addEventListener('mousemove', (e) => {
             hasMoved = true;
         }
         
-        // Horizontal mouse movement rotates around Y-axis (theta)
-        cameraTheta -= deltaX * mouseSensitivity;
-        
-        // Vertical mouse movement changes elevation (phi)
-        cameraPhi += deltaY * mouseSensitivity;
-        
-        // Clamp phi to prevent flipping
-        if (cameraPhi >= Math.PI - 0.1) {
-            cameraPhi = Math.PI - 0.1; // Prevent flipping over the top
-        }
-        if (cameraPhi <= 0.1) {
-            cameraPhi = 0.1; // Prevent flipping under the bottom
-        }
+        // Note: Trackball rotation is now handled in camera.js
+        // This just tracks movement for click detection
         
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
-        
-        // Only render if uniforms are properly initialized
-        if (pipeUniforms && sphereUniforms) {
-            renderGraph();
-        }
     }
 });
 
 canvas.addEventListener('mouseup', (e) => {
-    if (isDragging && !hasMoved) {
-        // This was a click, not a drag - handle edge selection
-        if (typeof handleMousePick !== 'undefined') {
-            handleMousePick(e.clientX, e.clientY);
+    if (e.button === 0) { // Left mouse button
+        if (isDraggingInput && !hasMoved) {
+            // This was a click, not a drag - handle edge selection
+            if (typeof handleMousePick !== 'undefined') {
+                handleMousePick(e.clientX, e.clientY, e);
+            }
         }
+        isDraggingInput = false;
+        hasMoved = false;
     }
-    isDragging = false;
-    hasMoved = false;
+});
+
+// Prevent context menu on right-click
+canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
 });
 
 // Zoom with mouse wheel
@@ -144,16 +146,16 @@ window.addEventListener('resize', () => {
 window.dispatchEvent(new Event('resize'));
 
 // Keyboard controls - Blender style navigation
-const keyState = {};
+window.keyState = {}; // Make it global so camera.js can access it
 const moveSpeed = 0.1;
 
 window.addEventListener('keydown', (e) => {
-    keyState[e.key.toLowerCase()] = true;
+    window.keyState[e.key.toLowerCase()] = true;
     handleCameraMovement();
 });
 
 window.addEventListener('keyup', (e) => {
-    keyState[e.key.toLowerCase()] = false;
+    window.keyState[e.key.toLowerCase()] = false;
 });
 
 // FPS Toggle Button Handler
@@ -173,13 +175,13 @@ document.getElementById('fpsToggleButton').addEventListener('click', function ()
         }
           // Render one final frame
         renderGraphWithFPS();
-        showStatus('FPS counter stopped', 'info');
+        console.log('[INFO] FPS counter stopped');
     } else {
         // Start continuous rendering
         startContinuousRendering();
         button.textContent = 'Stop FPS Counter';
         button.classList.add('active');
-        showStatus('FPS counter started', 'success');
+        console.log('[SUCCESS] FPS counter started');
     }
 });
 
@@ -188,12 +190,13 @@ window.onload = () => {
     if (typeof initializeEdgeInfoPanel !== 'undefined') {
         initializeEdgeInfoPanel();
     }
-    
-    //Load default OFF file if available
-    if(offData !== "") {
-        initializeGraph(offData);
-    }
-    else{
-        showStatus('Please select a .off file', 'error');
+    // If treeData is available (e.g., set by another loader), initialize
+    if (window.treeData) {
+        if (typeof initializeGraph === 'function') {
+            initializeGraph(window.treeData);
+        }
+    } else {
+        console.log('[ERROR] Please select a file to load tree data');
     }
 }
+// ...existing code...

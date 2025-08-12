@@ -75,7 +75,14 @@ function prepareLShapedPipeData(vertices, edges, vertexTypes, vertexValues) {
     // If we have cached data and we're just updating selection, use it
     if (cachedPipeInstanceData && edgeToInstanceMapping.size > 0) {
         // Update selection in cached data efficiently
-        updateEdgeSelection(selectedEdge, previousSelectedEdge);
+        if (window.selectedEdges && window.selectedEdges.length > 0) {
+            updateMultipleEdgeHighlighting();
+        } else if (selectedEdge) {
+            updateEdgeSelection(selectedEdge, previousSelectedEdge);
+        } else {
+            // Reset all to default color
+            updateMultipleEdgeHighlighting();
+        }
         previousSelectedEdge = selectedEdge; // Update tracking
         return { 
             pipeInstanceData: cachedPipeInstanceData, 
@@ -214,6 +221,73 @@ function updateEdgeSelection(newSelectedEdge, previousEdge = -1) {
     return true;
 }
 
+// Efficient function to update multiple edge selection highlighting
+function updateMultipleEdgeHighlighting() {
+    if (!cachedPipeInstanceData || !edgeToInstanceMapping) {
+        console.warn('Pipe data not cached, need full initialization');
+        return false;
+    }
+
+    const selectionColor = [1.0, 0.0, 1.0]; // Magenta for selected
+    const defaultColor = pipeColor; // Default pipe color
+    const colorUpdates = []; // Track which color regions to update
+
+    // First, reset all edges to default color
+    edgeToInstanceMapping.forEach((instanceIndices, edgeIndex) => {
+        instanceIndices.forEach(instanceIndex => {
+            const colorOffset = instanceIndex * 17 + 7; // Color starts at offset 7
+            cachedPipeInstanceData[colorOffset] = defaultColor[0];     // R
+            cachedPipeInstanceData[colorOffset + 1] = defaultColor[1]; // G
+            cachedPipeInstanceData[colorOffset + 2] = defaultColor[2]; // B
+            
+            // Track this update for efficient GPU upload
+            colorUpdates.push({
+                byteOffset: colorOffset * 4, // 4 bytes per float
+                data: new Float32Array([defaultColor[0], defaultColor[1], defaultColor[2]])
+            });
+        });
+    });
+
+    // Then, highlight all selected edges
+    window.selectedEdges.forEach(edgeIndex => {
+        if (edgeToInstanceMapping.has(edgeIndex)) {
+            const instanceIndices = edgeToInstanceMapping.get(edgeIndex);
+            instanceIndices.forEach(instanceIndex => {
+                const colorOffset = instanceIndex * 17 + 7; // Color starts at offset 7
+                cachedPipeInstanceData[colorOffset] = selectionColor[0];     // R
+                cachedPipeInstanceData[colorOffset + 1] = selectionColor[1]; // G
+                cachedPipeInstanceData[colorOffset + 2] = selectionColor[2]; // B
+                
+                // Track this update for efficient GPU upload
+                colorUpdates.push({
+                    byteOffset: colorOffset * 4, // 4 bytes per float
+                    data: new Float32Array([selectionColor[0], selectionColor[1], selectionColor[2]])
+                });
+            });
+        }
+    });
+
+    // Update GPU buffer with only the changed color data using bufferSubData
+    if (colorUpdates.length > 0 && pipeInstanceBuffer) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, pipeInstanceBuffer);
+        
+        // Sort by offset for efficient batching
+        colorUpdates.sort((a, b) => a.byteOffset - b.byteOffset);
+        
+        // Apply updates
+        colorUpdates.forEach(update => {
+            gl.bufferSubData(gl.ARRAY_BUFFER, update.byteOffset, update.data);
+        });
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, null);
+    }
+
+    return true;
+}
+
+// Export multiple edge highlighting function
+window.updateMultipleEdgeHighlighting = updateMultipleEdgeHighlighting;
+
 function updateInstanceData() {
     // Instance data to be moved here
     // Return the instance data for spheres and pipes    // Create L-shaped pipe connections
@@ -271,20 +345,21 @@ function renderGraph() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LESS); // or gl.LEQUAL?
+    gl.depthFunc(gl.LESS);
     gl.depthMask(true);
 
+    // Calculate camera position - fixed for trackball
     const eye = calculateCameraPosition();
-    const up = calculateUpVector();
-    const target = [
-        cameraTarget[0] + cameraOffset[0],
-        cameraTarget[1] + cameraOffset[1],
-        cameraTarget[2] + cameraOffset[2]
-    ];
+    const up = [0, 1, 0]; // Fixed up vector
+    const target = cameraTarget;
 
     mat4.lookAt(viewMatrix, eye, target, up);
     invViewMatrix = mat4.invert(mat4.create(), viewMatrix);
     
+    // Calculate model matrix with trackball rotation
+    const trackballModelMatrix = calculateModelMatrix();
+    
+    // Render pipes first
     gl.useProgram(pipeProgram);
     if (pipeUniforms.uProjectionMatrix) {
         gl.uniformMatrix4fv(pipeUniforms.uProjectionMatrix, false, projectionMatrix);
@@ -293,10 +368,30 @@ function renderGraph() {
         gl.uniformMatrix4fv(pipeUniforms.uViewMatrix, false, viewMatrix);
     }
     if (pipeUniforms.uModelMatrix) {
-        gl.uniformMatrix4fv(pipeUniforms.uModelMatrix, false, modelMatrix);
+        gl.uniformMatrix4fv(pipeUniforms.uModelMatrix, false, trackballModelMatrix);
     }
     if (pipeUniforms.uCameraPos) {
         gl.uniform3fv(pipeUniforms.uCameraPos, eye);    
+    }
+    
+    // Set dual-tone camera headlamp lighting
+    // NOTE: These are DIRECTIONAL LIGHTS (at infinity), not point lights
+    // The values represent light directions in world space, not positions
+    if (pipeUniforms.uLightDir) {
+        // Use API lighting if available, otherwise use hardcoded defaults
+        // let lightDir = [0.6, 0.4, 0.7]; // Modified: Slightly different angle for variation
+        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.main) {
+            lightDir = window.lightConfig.directions.main;
+        }
+        gl.uniform3fv(pipeUniforms.uLightDir, lightDir);
+    }
+    if (pipeUniforms.uLightColor) {
+        // Use API lighting if available, otherwise use hardcoded defaults
+        // let lightDir = [-0.4, -0.3, 0.9]; // Modified: Slightly different angle for variation
+        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.main) {
+            lightColor = window.lightConfig.colors.main;
+        }
+        gl.uniform3fv(pipeUniforms.uLightColor, lightColor);
     }
 
     gl.bindVertexArray(pipeVAO);
@@ -305,25 +400,46 @@ function renderGraph() {
         pipeIndexCount,
         gl.UNSIGNED_SHORT,
         0,
-        edgesCount    );
+        edgesCount
+    );
     gl.bindVertexArray(null);
 
-    // Render spheres second (no polygon offset needed)
+    // Render spheres second
     gl.useProgram(sphereProgram);
     if (sphereUniforms.uProjectionMatrix) {
         gl.uniformMatrix4fv(sphereUniforms.uProjectionMatrix, false, projectionMatrix);
     }
     if (sphereUniforms.uModelMatrix) {
-        gl.uniformMatrix4fv(sphereUniforms.uModelMatrix, false, modelMatrix);
+        gl.uniformMatrix4fv(sphereUniforms.uModelMatrix, false, trackballModelMatrix);
     }
     if (sphereUniforms.uViewMatrix) {
         gl.uniformMatrix4fv(sphereUniforms.uViewMatrix, false, viewMatrix);
     }
-    if (sphereUniforms.uCameraPos) {
-        gl.uniform3fv(sphereUniforms.uCameraPos, eye);
+    if (sphereUniforms.uCameraPosLocation) {
+        gl.uniform3fv(sphereUniforms.uCameraPosLocation, eye);
     }
     if (sphereUniforms.uInvViewMatrix) {
         gl.uniformMatrix4fv(sphereUniforms.uInvViewMatrix, false, invViewMatrix);
+    }
+    
+    // Set dual-tone camera headlamp lighting (same as pipes)
+    // NOTE: These are DIRECTIONAL LIGHTS (at infinity), not point lights
+    // The values represent light directions in world space, not positions
+    if (sphereUniforms.uLightDir) {
+        // Use API lighting if available, otherwise use hardcoded defaults
+        // let lightDir = [0.6, 0.4, 0.7]; // Modified: Slightly different angle for variation
+        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.main) {
+            lightDir = window.lightConfig.directions.main;
+        }
+        gl.uniform3fv(sphereUniforms.uLightDir, lightDir);
+    }
+    if (sphereUniforms.uLightColor) {
+        // Use API lighting if available, otherwise use hardcoded defaults
+        // let lightDir = [-0.4, -0.3, 0.9]; // Modified: Slightly different angle for variation
+        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.main) {
+            lightColor = window.lightConfig.colors.main;
+        }
+        gl.uniform3fv(sphereUniforms.uLightColor, lightColor);
     }
 
     gl.bindVertexArray(sphereVAO);
@@ -335,6 +451,42 @@ function renderGraph() {
         validVertices.length
     );
     gl.bindVertexArray(null);
+}
+
+// Integrate trackball camera into the rendering pipeline
+function renderScene() {
+    const cameraPosition = calculateCameraPosition();
+    const viewMatrix = mat4.create();
+
+    // Calculate view matrix using camera position and target
+    mat4.lookAt(viewMatrix, cameraPosition, cameraTarget, [0, 1, 0]);
+
+    // Pass the view matrix to the shaders
+    gl.uniformMatrix4fv(shaderProgram.uniformLocations.viewMatrix, false, viewMatrix);
+
+    // Render the scene (pipes, spheres, etc.)
+    renderPipes();
+    renderSpheres(cameraPosition);
+}
+
+function renderSpheres(cameraPosition) {
+    // Update spherical imposters based on the camera position
+    gl.uniform3fv(shaderProgram.uniformLocations.cameraPosition, cameraPosition);
+
+    // Render spheres
+    sphereInstances.forEach((sphere) => {
+        gl.uniform3fv(shaderProgram.uniformLocations.spherePosition, sphere.position);
+        gl.uniform1f(shaderProgram.uniformLocations.sphereRadius, sphere.radius);
+        gl.drawArrays(gl.TRIANGLES, 0, sphere.vertexCount);
+    });
+}
+
+// Ensure shaders have the necessary uniforms for camera position and view matrix
+function initializeShaderUniforms() {
+    shaderProgram.uniformLocations.viewMatrix = gl.getUniformLocation(shaderProgram, 'uViewMatrix');
+    shaderProgram.uniformLocations.cameraPosition = gl.getUniformLocation(shaderProgram, 'uCameraPosition');
+    shaderProgram.uniformLocations.spherePosition = gl.getUniformLocation(shaderProgram, 'uSpherePosition');
+    shaderProgram.uniformLocations.sphereRadius = gl.getUniformLocation(shaderProgram, 'uSphereRadius');
 }
 
 // FPS Counter functions
@@ -411,8 +563,8 @@ function updatePipeHighlighting() {
     if (!pipeInstanceBuffer) {
         console.warn('Pipe instance buffer not available, reinitializing graph');
         // If buffer doesn't exist, we need to reinitialize
-        if (typeof offData !== 'undefined' && offData) {
-            initializeGraph(offData);
+        if (window.treeData) {
+            initializeGraph(window.treeData);
         }
         return;
     }

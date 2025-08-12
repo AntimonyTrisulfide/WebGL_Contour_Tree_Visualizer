@@ -6,7 +6,7 @@ in float a_instanceRadius;
 in vec3 a_instanceColor;
 in vec3 a_jointPoint;
 in vec3 a_cutPlaneNormal;
-in float a_jointType;  // Joint type: 1.0=horiz-up, 2.0=horiz-down, 3.0=up-horiz, 4.0=down-horiz
+in float a_jointType;
 
 uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
@@ -18,23 +18,29 @@ out vec3 vInstanceColor;
 out vec3 vCameraPos;
 out vec3 vCylStart;
 out vec3 vCylEnd;
+out vec3 vModelCylStart;  // Model-space cylinder start
+out vec3 vModelCylEnd;    // Model-space cylinder end
 out float vRadius;
 out vec3 vJointPoint;
 out vec3 vCutPlaneNormal;
 out float vJointType;
 
 void main() {
-    // Calculate cylinder properties
+    // Store model-space coordinates (before model transformation)
+    vModelCylStart = a_instanceStart;
+    vModelCylEnd = a_instanceEnd;
+    
+    // Calculate cylinder properties in model space
     vec3 cylStart = a_instanceStart;
     vec3 cylEnd = a_instanceEnd;
     vec3 cylDir = normalize(cylEnd - cylStart);
     float cylLength = length(cylEnd - cylStart);
     vec3 cylCenter = (cylStart + cylEnd) * 0.5;
-    
+
     // Create transformation matrix to orient cuboid along cylinder direction
     vec3 up = cylDir;
     vec3 right;
-    
+
     // Choose a perpendicular vector
     if (abs(dot(up, vec3(0.0, 1.0, 0.0))) > 0.9) {
         right = normalize(cross(up, vec3(1.0, 0.0, 0.0)));
@@ -42,28 +48,39 @@ void main() {
         right = normalize(cross(up, vec3(0.0, 1.0, 0.0)));
     }
     vec3 forward = normalize(cross(up, right));
-      // Transformation matrix from local cuboid space to world space
+
+    // Transformation matrix from local cuboid space to model space
     mat3 transform = mat3(
         right * a_instanceRadius * 2.0,     // X-axis (width)
         up * cylLength,                      // Y-axis (length along cylinder)
         forward * a_instanceRadius * 2.0     // Z-axis (depth)
     );
-    
-    // Transform vertex position
-    vec3 localPos = transform * aPosition;
-    vec3 worldPos = cylCenter + localPos;
-    
-    // Apply model, view, and projection transforms
-    vec4 viewPos = uViewMatrix * uModelMatrix * vec4(worldPos, 1.0);
+
+    // Transform vertex position to model space
+    vec3 modelPos = cylCenter + transform * aPosition;
+
+    // Apply model matrix transformation for trackball rotation
+    vec4 transformedWorldPos = uModelMatrix * vec4(modelPos, 1.0);
+
+    // Transform to view space
+    vec4 viewPos = uViewMatrix * transformedWorldPos;
+
+    // Transform to clip space
     gl_Position = uProjectionMatrix * viewPos;
-      // Pass to fragment shader
-    vWorldPos = (uModelMatrix * vec4(worldPos, 1.0)).xyz;
+
+    // Pass data to fragment shader
+    vWorldPos = transformedWorldPos.xyz;
     vInstanceColor = a_instanceColor;
     vCameraPos = uCameraPos;
+    
+    // Transform cylinder endpoints to world space for compatibility
     vCylStart = (uModelMatrix * vec4(cylStart, 1.0)).xyz;
     vCylEnd = (uModelMatrix * vec4(cylEnd, 1.0)).xyz;
+    
     vRadius = a_instanceRadius;
-    vJointPoint = (uModelMatrix * vec4(a_jointPoint, 1.0)).xyz;
-    vCutPlaneNormal = (uModelMatrix * vec4(a_cutPlaneNormal, 0.0)).xyz; // Normal vector, so w=0
+    
+    // Pass model-space joint data (don't transform these)
+    vJointPoint = a_jointPoint;
+    vCutPlaneNormal = a_cutPlaneNormal;
     vJointType = a_jointType;
 }

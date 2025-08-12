@@ -39,6 +39,13 @@ class ParameterManager {
                     intermediate: [0.8, 0.8, 0.8]
                 }
             },
+            lighting: {
+                lightPosition: [0, 0, 0],
+                light1Dir: [0.5, 0.3, 0.8],
+                light1Color: [1.0, 0.9, 0.7],
+                light2Dir: [-0.3, -0.4, 0.85],
+                light2Color: [0.7, 0.8, 1.0]
+            },
             controls: {
                 mouseSensitivity: 0.005
             }
@@ -69,8 +76,8 @@ class ParameterManager {
             mouseSensitivity = this.parameters.controls.mouseSensitivity;
         }
 
-        // Update node colors
-        if (typeof NODE_COLORS !== 'undefined') {
+        // Update node colors (only if not using API colors)
+        if (typeof NODE_COLORS !== 'undefined' && !window.usingAPIColors) {
             NODE_COLORS[NODE_TYPES.MINIMUM] = this.parameters.colors.nodeColors.minimum;
             NODE_COLORS[NODE_TYPES.SADDLE] = this.parameters.colors.nodeColors.saddle;
             NODE_COLORS[NODE_TYPES.MAXIMUM] = this.parameters.colors.nodeColors.maximum;
@@ -84,16 +91,23 @@ class ParameterManager {
     }
 
     updateParameter(path, value) {
-        // Update nested parameter using dot notation (e.g., "rendering.sphereRadius")
         const keys = path.split('.');
         let current = this.parameters;
         
         for (let i = 0; i < keys.length - 1; i++) {
-            if (!current[keys[i]]) current[keys[i]] = {};
+            if (!current[keys[i]]) {
+                current[keys[i]] = {};
+            }
             current = current[keys[i]];
         }
         
         current[keys[keys.length - 1]] = value;
+        
+        // If a color parameter is being changed, disable API colors
+        if (path.includes('colors.nodeColors')) {
+            window.usingAPIColors = false;
+        }
+        
         this.applyParameters();
     }
 
@@ -147,6 +161,9 @@ class ParameterManager {
 
 // Global parameter manager instance
 const parameterManager = new ParameterManager();
+
+// Make parameterManager globally accessible
+window.parameterManager = parameterManager;
 
 // Initialize parameters when the page loads
 window.addEventListener('load', async () => {

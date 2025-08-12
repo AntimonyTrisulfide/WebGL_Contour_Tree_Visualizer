@@ -10,7 +10,6 @@ Issues with the code:
     3. by mapping it is possible for maxima to remain below the saddles (i.e. the saddle maxima arc length is not mapping correctly in some edge cases (Block 1 WRESNET))
 
 New Functionality (to add)
-    1. Add selection logic using mouse clicks to select edges and vertices.
     2. Use UBO instead of uniforms separately for each object.
     3. Add 
 
@@ -18,7 +17,7 @@ New Functionality (to add)
 
 // Global variables and Default Data
 
-const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
+// const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
 const gl = canvas.getContext("webgl2", { 
     // antialias: true,
     antialias: false, // Disable antialiasing for now
@@ -41,7 +40,7 @@ let pipeRadius = 0.005; // Default radius of the pipes
 let pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
 //Background color
-let backgroundColor = [0.9, 0.9, 0.9, 1.0]; // Dark gray background
+let backgroundColor = [0.4, 0.4, 0.4, 1.0]; // Light grey background instead of black
 
 // JS Object for point types (assgned each one a unique number)
 const NODE_TYPES = {
@@ -66,7 +65,7 @@ projectionMatrix = mat4.create();
 // mat4.perspective(projectionMatrix, Math.PI / 4, canvas.width / canvas.height, 0.01, 1000);
 
 // Temporarily use a tighter range to see if the issue persists
-mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.01, 1000);
 viewMatrix = mat4.create();
 modelMatrix = mat4.create();
 mat4.identity(modelMatrix);
@@ -87,6 +86,66 @@ let fpsCounter = {
     lastFpsUpdate: 0
 };
 let isAnimating = false; // Track if we're in continuous rendering mode
+
+// Multiple edge selection support
+let selectedEdges = []; // Array to store multiple selected edge IDs
+let edgeId = []; // Legacy compatibility array - mirrors selectedEdges for integration
+
+// Universal spacing support (parser-independent)
+let applySpacing = false; // Flag to apply node spacing for overlap removal
+let prevSpacing = false; // Previous state of applySpacing for comparison
+
+// Helper function to synchronize edgeId array with selectedEdges for integration compatibility
+function syncEdgeIdArray() {
+    window.edgeId = [...window.selectedEdges];
+}
+
+// Function to update viewport and projection matrix on canvas resize
+function updateViewport() {
+    if (gl && canvas) {
+        // Update WebGL viewport
+        gl.viewport(0, 0, canvas.width, canvas.height);
+        
+        // Update projection matrix
+        mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+        
+        console.log(`Viewport updated to ${canvas.width}x${canvas.height}`);
+    }
+}
+
+// Function to handle canvas resize with proper WebGL context update
+function handleCanvasResize() {
+    if (canvas && gl) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        updateViewport();
+        
+        // Re-render the scene if render function is available
+        if (typeof renderGraph === 'function') {
+            renderGraph();
+        }
+    }
+}
+
+// Make sync function globally accessible
+window.syncEdgeIdArray = syncEdgeIdArray;
+
+// Make selectedEdges and edgeId globally accessible
+window.selectedEdges = selectedEdges;
+window.edgeId = edgeId;
+
+// Make spacing variables globally accessible
+window.applySpacing = applySpacing;
+window.prevSpacing = prevSpacing;
+
+// Initialize edgeId array synchronization on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Ensure initial synchronization
+    if (typeof window.syncEdgeIdArray === 'function') {
+        window.syncEdgeIdArray();
+    }
+});
 
 
 

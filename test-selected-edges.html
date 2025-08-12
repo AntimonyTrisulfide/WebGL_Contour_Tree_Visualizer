@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Selected Edges Viewer</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        #edges { font-size: 1.2em; color: #2a4d7a; }
+        .label { font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>Selected Edges (from main app)</h2>
+    <div class="label">Current selectedEdges array:</div>
+    <div id="edges">[waiting for selection...]</div>
+    <button id="refreshBtn">Refresh Now</button>
+    <p style="color: #888; font-size: 0.9em;">This page must be opened in the same browser and context as your main app, or as a popout window from it, for the API to be accessible.</p>
+    <script>
+        function updateEdgesDisplay() {
+            let arr = [];
+            try {
+                if (window.opener && window.opener.getSelectedEdges) {
+                    arr = window.opener.getSelectedEdges();
+                } else if (window.getSelectedEdges) {
+                    arr = window.getSelectedEdges();
+                }
+            } catch (e) {
+                arr = '[API not accessible]';
+            }
+            document.getElementById('edges').textContent = Array.isArray(arr) ? JSON.stringify(arr) : arr;
+        }
+        document.getElementById('refreshBtn').onclick = updateEdgesDisplay;
+        updateEdgesDisplay();
+
+        // Listen for selection updates from the main app
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'selectedEdgesUpdate') {
+                document.getElementById('edges').textContent = JSON.stringify(event.data.selectedEdges);
+            }
+        });
+    </script>
+</body>
+</html>

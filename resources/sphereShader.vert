@@ -9,32 +9,33 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec3 uCameraPos;
-uniform mat4 uInvViewMatrix;
 
 out vec2 vTexCoord;
-out vec3 vCameraPos;
-out vec3 vWorldPos; // Pass world-space position
+out vec3 vWorldPos;
 out vec3 vInstanceColor;
-out vec3 vInstanceCenter; // Pass sphere center in world space
-out float vInstanceRadius; // Pass sphere radius
+out vec3 vInstanceCenter;
+out float vInstanceRadius;
 
 void main() {
     // Compute world-space center of the sphere
     vec4 worldCenter = uModelMatrix * vec4(a_instancePosition, 1.0);
     
-    // Compute world-space position of the vertex
-    // Billboard: vertices are offset in view space, so transform to view space first
-    vec4 viewCenter = uViewMatrix * worldCenter;
-    vec3 viewPos = viewCenter.xyz + vec3(aPosition.x * a_instanceSize, aPosition.z * a_instanceSize, 0.0);
+    // For ray-casting, we need to create a proper billboard quad
+    // Get the right and up vectors from the view matrix
+    vec3 right = vec3(uViewMatrix[0][0], uViewMatrix[1][0], uViewMatrix[2][0]);
+    vec3 up = vec3(uViewMatrix[0][1], uViewMatrix[1][1], uViewMatrix[2][1]);
     
-    // Transform back to world space for fragment shader
-    vec4 worldPos = uInvViewMatrix * vec4(viewPos, 1.0);
+    // Create billboard quad in world space
+    vec3 worldPos = worldCenter.xyz + 
+                   (aPosition.x * right + aPosition.z * up) * a_instanceSize;
     
-    gl_Position = uProjectionMatrix * vec4(viewPos, 1.0);
-      vTexCoord = aTexCoord;
-    vWorldPos = worldPos.xyz; // Pass world-space position
+    // Transform to clip space
+    gl_Position = uProjectionMatrix * uViewMatrix * vec4(worldPos, 1.0);
+    
+    // Pass data to fragment shader
+    vTexCoord = aTexCoord;
+    vWorldPos = worldPos;
     vInstanceColor = a_instanceColor;
-    vInstanceCenter = worldCenter.xyz; // Pass sphere center
-    vCameraPos = uCameraPos;
-    vInstanceRadius = a_instanceSize; // Pass sphere radius
+    vInstanceCenter = worldCenter.xyz;
+    vInstanceRadius = a_instanceSize;
 }
