@@ -41,10 +41,8 @@ class ParameterManager {
             },
             lighting: {
                 lightPosition: [0, 0, 0],
-                light1Dir: [0.5, 0.3, 0.8],
-                light1Color: [1.0, 0.9, 0.7],
-                light2Dir: [-0.3, -0.4, 0.85],
-                light2Color: [0.7, 0.8, 1.0]
+                lightDir: [0.5, 0.5, 0.7],
+                lightColor: [1.0, 1.0, 1.0]
             },
             controls: {
                 mouseSensitivity: 0.005

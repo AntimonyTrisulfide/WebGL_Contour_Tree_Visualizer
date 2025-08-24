@@ -4,20 +4,7 @@
 /**
  * Main function to invoke the contour tree visualizer
  * @param {Object} treeData - The parsed tree data containing nodes, vertices, edges, etc.
- * @param {Ob    // Initialize mouse picking
-    if (typeof initializeMousePicking === 'function') {
-        initializeMousePicking();
-    }
-    
-    // Initialize edge info panel
-    if (typeof initializeEdgeInfoPanel === 'function') {
-        initializeEdgeInfoPanel();
-    }
-    
-    // Initialize multiple edge info panel
-    if (typeof initializeMultipleEdgeInfoPanel === 'function') {
-        initializeMultipleEdgeInfoPanel();
-    }htConfig - Light configuration with directions and colors
+ * @param {Object} lightConfig - Light configuration with directions and colors
  * @param {Array} colors - Color configuration
  * @param {Object} globalVars - Other global variables
  * @param {Array} edgeIds - Array of edge IDs to highlight and display info for
@@ -36,8 +23,13 @@ function invokeContourTreeVisualizer(treeData, lightConfig, colors, globalVars, 
         // Update global variables with provided data
         updateGlobalVariables(treeData, lightConfig, colors, globalVars);
         
-        // Set the selected edges
-        setSelectedEdges(edgeIds);
+        // Set the selected edges using the selection manager
+        if (window.selectionManager) {
+            window.selectionManager.setSelection(edgeIds);
+        } else {
+            // Fallback to legacy behavior
+            setSelectedEdges(edgeIds);
+        }
         
         // Initialize or update the visualization
         if (!isVisualizationInitialized()) {
@@ -71,16 +63,21 @@ function invokeContourTreeVisualizer(treeData, lightConfig, colors, globalVars, 
  * @param {number} edgeId - The edge ID to add
  */
 function addEdgeToSelection(edgeId) {
-    if (!window.selectedEdges.includes(edgeId)) {
-        window.selectedEdges.push(edgeId);
-        
-        // Synchronize edgeId array for integration compatibility
-        if (typeof window.syncEdgeIdArray === 'function') {
-            window.syncEdgeIdArray();
+    if (window.selectionManager) {
+        window.selectionManager.addEdge(edgeId);
+    } else {
+        // Fallback to legacy behavior
+        if (!window.selectedEdges.includes(edgeId)) {
+            window.selectedEdges.push(edgeId);
+            
+            // Synchronize edgeId array for integration compatibility
+            if (typeof window.syncEdgeIdArray === 'function') {
+                window.syncEdgeIdArray();
+            }
+            
+            updateEdgeDisplay();
+            updateVisualization();
         }
-        
-        updateEdgeDisplay();
-        updateVisualization();
     }
 }
 
@@ -89,9 +86,34 @@ function addEdgeToSelection(edgeId) {
  * @param {number} edgeId - The edge ID to remove
  */
 function removeEdgeFromSelection(edgeId) {
-    const index = window.selectedEdges.indexOf(edgeId);
-    if (index > -1) {
-        window.selectedEdges.splice(index, 1);
+    if (window.selectionManager) {
+        window.selectionManager.removeEdge(edgeId);
+    } else {
+        // Fallback to legacy behavior
+        const index = window.selectedEdges.indexOf(edgeId);
+        if (index > -1) {
+            window.selectedEdges.splice(index, 1);
+            
+            // Synchronize edgeId array for integration compatibility
+            if (typeof window.syncEdgeIdArray === 'function') {
+                window.syncEdgeIdArray();
+            }
+            
+            updateEdgeDisplay();
+            updateVisualization();
+        }
+    }
+}
+
+/**
+ * Clear all selected edges
+ */
+function clearEdgeSelection() {
+    if (window.selectionManager) {
+        window.selectionManager.clearSelection();
+    } else {
+        // Fallback to legacy behavior
+        window.selectedEdges = [];
         
         // Synchronize edgeId array for integration compatibility
         if (typeof window.syncEdgeIdArray === 'function') {
@@ -100,26 +122,11 @@ function removeEdgeFromSelection(edgeId) {
         
         updateEdgeDisplay();
         updateVisualization();
-    }
-}
-
-/**
- * Clear all selected edges
- */
-function clearEdgeSelection() {
-    window.selectedEdges = [];
-    
-    // Synchronize edgeId array for integration compatibility
-    if (typeof window.syncEdgeIdArray === 'function') {
-        window.syncEdgeIdArray();
-    }
-    
-    updateEdgeDisplay();
-    updateVisualization();
-    
-    // Update menu system if available
-    if (typeof menuSystem !== 'undefined' && menuSystem.updateOnEdgeSelectionChange) {
-        menuSystem.updateOnEdgeSelectionChange(0);
+        
+        // Update menu system if available
+        if (typeof menuSystem !== 'undefined' && menuSystem.updateOnEdgeSelectionChange) {
+            menuSystem.updateOnEdgeSelectionChange(0);
+        }
     }
 }
 
@@ -128,7 +135,12 @@ function clearEdgeSelection() {
  * @returns {Array} Array of selected edge IDs
  */
 function getSelectedEdges() {
-    return [...window.selectedEdges];
+    if (window.selectionManager) {
+        return window.selectionManager.getSelection();
+    } else {
+        // Fallback to legacy behavior
+        return [...window.selectedEdges];
+    }
 }
 
 /**
@@ -141,34 +153,40 @@ function updateSelectedEdges(edgeIds = []) {
     try {
         console.log('updateSelectedEdges called with:', edgeIds);
         
-        // Update the global selected edges array
-        window.selectedEdges = [...edgeIds];
+        // Store previous selection for comparison
+        const previousSelection = getSelectedEdges();
         
-        // Synchronize edgeId array for integration compatibility
-        if (typeof window.syncEdgeIdArray === 'function') {
-            window.syncEdgeIdArray();
+        // Update the selection using the selection manager
+        if (window.selectionManager) {
+            window.selectionManager.setSelection(edgeIds);
+        } else {
+            // Fallback to legacy behavior
+            window.selectedEdges = [...edgeIds];
+            
+            // Synchronize edgeId array for integration compatibility
+            if (typeof window.syncEdgeIdArray === 'function') {
+                window.syncEdgeIdArray();
+            }
+            
+            // Update edge highlighting
+            if (typeof updateMultipleEdgeHighlighting === 'function') {
+                updateMultipleEdgeHighlighting();
+            }
+            
+            // Update edge info display
+            if (typeof updateMultipleEdgeInfo === 'function') {
+                updateMultipleEdgeInfo(window.selectedEdges);
+            }
+            
+            // Re-render the scene
+            if (typeof renderGraph === 'function') {
+                renderGraph();
+            }
         }
-        
-        // Update edge highlighting
-        if (typeof updateMultipleEdgeHighlighting === 'function') {
-            updateMultipleEdgeHighlighting();
-        }
-        
-        // Update edge info display
-        if (typeof updateMultipleEdgeInfo === 'function') {
-            updateMultipleEdgeInfo(window.selectedEdges);
-        } else if (typeof updateEdgeInfo === 'function' && window.selectedEdges.length > 0) {
-            updateEdgeInfo(window.selectedEdges[0]); // Fallback to single edge
-        }
-        
-        // Re-render the scene
-        if (typeof renderGraph === 'function') {
-            renderGraph();
-        }
-        
+
         console.log(`Successfully updated ${edgeIds.length} selected edges`);
         return {
-            selectedEdges: [...window.selectedEdges],
+            selectedEdges: getSelectedEdges(),
             success: true,
             message: `Updated ${edgeIds.length} selected edges`
         };
@@ -187,13 +205,18 @@ function updateSelectedEdges(edgeIds = []) {
  * @param {Array} edgeIds - Array of edge IDs to select
  */
 function setSelectedEdges(edgeIds) {
-    window.selectedEdges = [...edgeIds];
-    
-    // Synchronize edgeId array for integration compatibility
-    if (typeof window.syncEdgeIdArray === 'function') {
-        window.syncEdgeIdArray();
+    if (window.selectionManager) {
+        window.selectionManager.setSelection(edgeIds);
+    } else {
+        // Fallback to legacy behavior
+        window.selectedEdges = [...edgeIds];
+        
+        // Synchronize edgeId array for integration compatibility
+        if (typeof window.syncEdgeIdArray === 'function') {
+            window.syncEdgeIdArray();
+        }
+        updateEdgeDisplay();
     }
-    updateEdgeDisplay();
 }
 
 /**
@@ -256,10 +279,12 @@ function updateGlobalVariables(treeData, lightConfig, colors, globalVars) {
     if (globalVars) {
         if (globalVars.sphereRadius !== undefined) {
             sphereRadius = globalVars.sphereRadius;
+            window.sphereRadius = globalVars.sphereRadius; // Sync with window
             console.log('API: Set sphereRadius to', sphereRadius);
         }
         if (globalVars.pipeRadius !== undefined) {
             pipeRadius = globalVars.pipeRadius;
+            window.pipeRadius = globalVars.pipeRadius; // Sync with window
             console.log('API: Set pipeRadius to', pipeRadius);
         }
         
@@ -312,8 +337,6 @@ function updateVisualization() {
     // Update edge info display - use multiple edge info for arrays
     if (typeof updateMultipleEdgeInfo === 'function') {
         updateMultipleEdgeInfo(window.selectedEdges);
-    } else if (typeof updateEdgeInfo === 'function' && window.selectedEdges.length > 0) {
-        updateEdgeInfo(window.selectedEdges[0]); // Fallback to single edge
     }
     
     // Re-render the scene
@@ -332,7 +355,9 @@ function updateEdgeDisplay() {
 
 /**
  * Update lighting configuration via API
- * @param {Object} lightConfig - Light configuration with directions and colors
+ * @param {Object} lightConfig - Light configuration object
+ * @param {Array} [lightConfig.lightDirection] - Light direction [x, y, z] (default: [0.5, 0.5, 0.7])
+ * @param {Array} [lightConfig.lightColor] - Light color [r, g, b] (default: [1.0, 1.0, 1.0])
  * @returns {Object} Result object with success status
  */
 function updateLightingConfiguration(lightConfig) {
@@ -502,6 +527,7 @@ window.getSelectedEdges = getSelectedEdges;
 window.getEdgeId = getEdgeId; // Legacy compatibility getter
 window.updateSelectedEdges = updateSelectedEdges;
 
+
 // Also expose the individual functions globally immediately
 window.setSelectedEdges = setSelectedEdges;
 window.updateGlobalVariables = updateGlobalVariables;
@@ -515,3 +541,14 @@ window.getCurrentLightingConfiguration = getCurrentLightingConfiguration;
 window.getCurrentColorConfiguration = getCurrentColorConfiguration;
 window.getCurrentGlobalParameters = getCurrentGlobalParameters;
 window.getEdgeId = getEdgeId;
+
+// Initialize global selected edges array
+window.selectedEdges = [];
+
+// Legacy compatibility: create a getter for edgeId that mirrors selectedEdges
+Object.defineProperty(window, 'edgeId', {
+    get: function() {
+        return [...this.selectedEdges];
+    },
+    configurable: true
+});

@@ -15,9 +15,11 @@
     </script>
     <!-- Core visualizer files (parser-independent) -->
     <script src="../src/globalvar.js" defer></script>
-    <script src="../src/offParser.js"></script>
+    <script src="../src/dataHandler.js"></script>
     <script src="../src/universalParser.js"></script>
     <script src="../src/primitives.js"></script>
+    <script src="../src/selectionManager.js"></script>
+    <script src="../src/uiManager.js"></script>
     <script src="../src/input.js" defer></script>
     <script src="../src/camera.js"></script>
     <script src="../src/initialize.js"></script>
@@ -41,6 +43,18 @@
         <button id="generateSample" class="file-input-label">Generate Sample Tree</button>
         <button id="clearSelection" class="reset-button">Clear Selection</button>
         <button id="toggleSpacing" class="reset-button">Toggle Spacing (P)</button>
+        
+        <div class="radius-controls">
+            <div class="slider-control">
+                <label for="sphereRadiusSlider">Sphere Radius: <span id="sphereRadiusValue">0.1</span></label>
+                <input type="range" id="sphereRadiusSlider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+            <div class="slider-control">
+                <label for="pipeRadiusSlider">Pipe Radius: <span id="pipeRadiusValue">0.02</span></label>
+                <input type="range" id="pipeRadiusSlider" min="0.001" max="0.1" step="0.001" value="0.02">
+            </div>
+        </div>
+        
         <div class="fps-controls">
             <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
             <div id="fpsDisplay" class="fps-display">FPS: --</div>
@@ -48,7 +62,7 @@
     </div>
 
     <div class="instructions">
-        <h3>Universal Parser Example</h3>
+        <!-- <h3>Universal Parser Example</h3>
         <p>This example demonstrates the universal parser system that automatically detects file types and uses the appropriate parser.</p>
         <ul>
             <li><strong>Supported Formats:</strong> JSON, XML, CSV, OFF</li>
@@ -56,7 +70,8 @@
             <li><strong>Extensible:</strong> Easy to add new parsers</li>
             <li><strong>Sample Generator:</strong> Generate a sample tree programmatically</li>
         </ul>
-        <p><strong>Controls:</strong> Use mouse to rotate, click to select edges, P to toggle spacing</p>
+        <p><strong>Controls:</strong> Use mouse to rotate, click to select edges, P to toggle spacing</p> -->
+        <h3>Test Script</h3>
     </div>
 
     <div id="edgeInfoPanel" class="edge-info-panel collapsed">
@@ -151,19 +166,23 @@
             };
         }
 
+
+
         // Visualizer configuration
         function getVisualizerConfig() {
+            // Get current slider values or use defaults
+            const currentSphereRadius = document.getElementById('sphereRadiusSlider') ? 
+                parseFloat(document.getElementById('sphereRadiusSlider').value) : 0.1;
+            const currentPipeRadius = document.getElementById('pipeRadiusSlider') ? 
+                parseFloat(document.getElementById('pipeRadiusSlider').value) : 0.02;
+            
             return {
                 lightConfig: {
                     directions: {
-                        key: [0.5, 0.3, 0.8],
-                        fill: [-0.3, -0.4, 0.85],
-                        back: [0.0, 0.0, 1.0]
+                        dir: [0.0, 0.0, 0.1]
                     },
                     colors: {
-                        key: [1.0, 0.9, 0.7],
-                        fill: [0.7, 0.8, 1.0],
-                        back: [0.3, 0.3, 0.3]
+                        col: [1.0, 1.0, 1.0]
                     }
                 },
                 colors: {
@@ -176,8 +195,8 @@
                     backgroundColor: [0.1, 0.1, 0.1, 1.0]
                 },
                 globalVars: {
-                    sphereRadius: 0.1,
-                    pipeRadius: 0.02
+                    sphereRadius: currentSphereRadius,
+                    pipeRadius: currentPipeRadius
                 }
             };
         }
@@ -216,8 +235,11 @@
         function visualizeTreeData(treeData, sourceName) {
             console.log(`🎨 Visualizing tree data from ${sourceName}...`);
             
+            // Check if we have existing data and this is different
+            const isDifferentData = window.currentTreeData && isTreeDataDifferent(treeData, window.currentTreeData);
+            
             // Force complete reinitialization when loading different data
-            if (window.currentTreeData && isTreeDataDifferent(treeData, window.currentTreeData)) {
+            if (isDifferentData) {
                 console.log('🔄 Different data detected, forcing complete reinitialization...');
                 if (typeof forceCompleteReinitialization === 'function') {
                     forceCompleteReinitialization();
@@ -230,29 +252,75 @@
             window.currentTreeData = treeData;
             window.treeData = treeData; // Also store in the location the visualizer expects
             
-            const config = getVisualizerConfig();
-            
-            if (typeof invokeContourTreeVisualizer === 'function') {
-                const result = invokeContourTreeVisualizer(
-                    treeData,
-                    config.lightConfig,
-                    config.colors,
-                    config.globalVars,
-                    [] // No initial edge selection
-                );
+            // If this is a different file being loaded, call initializeGraph directly
+            if (isDifferentData) {
+                console.log('📊 Different file loaded, calling initializeGraph directly...');
                 
-                if (result.success) {
-                    console.log(`✅ Successfully visualized ${sourceName} data:`, result.message);
+                // Call initializeGraph directly for file changes
+                if (typeof initializeGraph === 'function') {
+                    console.log('🔄 Calling initializeGraph for new file data...');
+                    initializeGraph();
                 } else {
-                    console.error(`❌ Failed to visualize ${sourceName} data:`, result.message);
+                    console.log('⚠️ initializeGraph not available, falling back to API');
+                    // Fallback to API method
+                    const config = getVisualizerConfig();
+                    if (typeof invokeContourTreeVisualizer === 'function') {
+                        const result = invokeContourTreeVisualizer(
+                            treeData,
+                            config.lightConfig,
+                            config.colors,
+                            config.globalVars,
+                            [] // No initial edge selection
+                        );
+                        
+                        if (result.success) {
+                            console.log(`✅ Successfully visualized ${sourceName} data:`, result.message);
+                        } else {
+                            console.error(`❌ Failed to visualize ${sourceName} data:`, result.message);
+                        }
+                    }
                 }
             } else {
-                console.error('❌ Visualizer API not available');
+                console.log('📊 First time loading or same data, using API method...');
+                // Use API method for first load or same data
+                const config = getVisualizerConfig();
+                if (typeof invokeContourTreeVisualizer === 'function') {
+                    const result = invokeContourTreeVisualizer(
+                        treeData,
+                        config.lightConfig,
+                        config.colors,
+                        config.globalVars,
+                        [] // No initial edge selection
+                    );
+                    
+                    if (result.success) {
+                        console.log(`✅ Successfully visualized ${sourceName} data:`, result.message);
+                    } else {
+                        console.error(`❌ Failed to visualize ${sourceName} data:`, result.message);
+                    }
+                } else {
+                    console.error('❌ Visualizer API not available');
+                }
             }
         }
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize slider values and display
+            const sphereSlider = document.getElementById('sphereRadiusSlider');
+            const pipeSlider = document.getElementById('pipeRadiusSlider');
+            const sphereValueDisplay = document.getElementById('sphereRadiusValue');
+            const pipeValueDisplay = document.getElementById('pipeRadiusValue');
+            
+            // Set initial values from global variables or defaults
+            const initialSphereRadius = (typeof window.sphereRadius !== 'undefined') ? window.sphereRadius : 0.1;
+            const initialPipeRadius = (typeof window.pipeRadius !== 'undefined') ? window.pipeRadius : 0.02;
+            
+            sphereSlider.value = initialSphereRadius;
+            pipeSlider.value = initialPipeRadius;
+            sphereValueDisplay.textContent = initialSphereRadius.toFixed(3);
+            pipeValueDisplay.textContent = initialPipeRadius.toFixed(3);
+            
             // Set up universal file input
             setupUniversalFileInput('universalInput', 
                 function(treeData, filename) {
@@ -274,7 +342,9 @@
 
             // Clear selection button
             document.getElementById('clearSelection').addEventListener('click', function() {
-                if (typeof clearEdgeSelection === 'function') {
+                if (window.selectionManager) {
+                    window.selectionManager.clearSelection();
+                } else if (typeof clearEdgeSelection === 'function') {
                     clearEdgeSelection();
                 }
             });
@@ -294,6 +364,97 @@
                 } else {
                     console.log('❌ Spacing toggle not available');
                 }
+            });
+
+            // Direct update function for sliders
+            function updateRadius(radiusType, newValue) {
+                console.log(`🔄 ${radiusType} radius changing to:`, newValue);
+                
+                // Update global variables immediately
+                if (radiusType === 'Sphere') {
+                    window.sphereRadius = newValue;
+                    sphereRadius = newValue;
+                } else if (radiusType === 'Pipe') {
+                    window.pipeRadius = newValue;
+                    pipeRadius = newValue;
+                }
+                
+                // If tree data exists, reinitialize the graph
+                if (window.currentTreeData) {
+                    console.log('📊 Reinitializing graph with updated radius...');
+                    
+                    // Force complete reinitialization first
+                    if (typeof forceCompleteReinitialization === 'function') {
+                        forceCompleteReinitialization();
+                    } else if (typeof window.forceCompleteReinitialization === 'function') {
+                        window.forceCompleteReinitialization();
+                    }
+                    
+                    // Call initializeGraph directly to rebuild geometry with new radius
+                    if (typeof initializeGraph === 'function') {
+                        console.log('🔄 Calling initializeGraph with new radius...');
+                        initializeGraph();
+                    } else {
+                        console.log('⚠️ initializeGraph not available, falling back to visualizeTreeData');
+                        visualizeTreeData(window.currentTreeData, `${radiusType} Radius Updated`);
+                    }
+                } else {
+                    console.log('⚠️ No tree data available for re-initialization');
+                }
+            }
+
+            // Throttled update function for sliders
+            let updateTimeout;
+            function throttledRadiusUpdate(radiusType, newValue) {
+                clearTimeout(updateTimeout);
+                updateTimeout = setTimeout(() => {
+                    updateRadius(radiusType, newValue);
+                }, 150); // 150ms delay to prevent rapid updates
+            }
+
+            // Sphere radius slider
+            document.getElementById('sphereRadiusSlider').addEventListener('input', function() {
+                const newRadius = parseFloat(this.value);
+                document.getElementById('sphereRadiusValue').textContent = newRadius.toFixed(3);
+                
+                // Update global sphere radius variables
+                window.sphereRadius = newRadius;
+                if (typeof sphereRadius !== 'undefined') {
+                    sphereRadius = newRadius;
+                }
+                
+                console.log('🔄 Sphere radius updated:', newRadius, 'Global:', window.sphereRadius);
+                throttledRadiusUpdate('Sphere', newRadius);
+            });
+
+            // Pipe radius slider
+            document.getElementById('pipeRadiusSlider').addEventListener('input', function() {
+                const newRadius = parseFloat(this.value);
+                document.getElementById('pipeRadiusValue').textContent = newRadius.toFixed(3);
+                
+                // Update global pipe radius variables
+                window.pipeRadius = newRadius;
+                if (typeof pipeRadius !== 'undefined') {
+                    pipeRadius = newRadius;
+                }
+                
+                console.log('🔄 Pipe radius updated:', newRadius, 'Global:', window.pipeRadius);
+                throttledRadiusUpdate('Pipe', newRadius);
+            });
+
+            // Add immediate update on slider mouseup for better responsiveness
+            document.getElementById('sphereRadiusSlider').addEventListener('mouseup', function() {
+                console.log('🔄 Sphere radius mouseup - forcing immediate update');
+                const newRadius = parseFloat(this.value);
+                clearTimeout(updateTimeout); // Cancel any pending throttled updates
+                updateRadius('Sphere', newRadius);
+            });
+
+            document.getElementById('pipeRadiusSlider').addEventListener('mouseup', function() {
+                console.log('🔄 Pipe radius mouseup - forcing immediate update');
+                const newRadius = parseFloat(this.value);
+                clearTimeout(updateTimeout); // Cancel any pending throttled updates
+                updateRadius('Pipe', newRadius);
             });
 
             // Initialize global variables needed by the system

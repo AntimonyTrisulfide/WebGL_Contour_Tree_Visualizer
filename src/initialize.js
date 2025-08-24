@@ -207,115 +207,88 @@ function getAttributeLocations(sphereProgram, pipeProgram) {
     };
 }
 
-// Updated initializeGraph function with L-shaped connections
-async function initializeGraph(offData = null) {
+// Unified initializeGraph function that works with parsed data only
+async function initializeGraph() {
+    console.log('🚀 Initializing graph with parsed tree data...');
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    // In initializeGraph function, add this at the beginning:
+    // Clear previous state when loading new data
     intermediatePoints = []; // Clear previous intermediate points
-
-    // Clear pipe cache when loading new graph data
+    validVertices = [];
+    validTypes = [];
+    
     if (typeof clearPipeCache !== 'undefined') {
         clearPipeCache();
     }
     
-    // Clear previous state when loading new data
-    validVertices = [];
-    validTypes = [];
-    intermediatePoints = [];
     if (typeof window.selectedEdges !== 'undefined') {
         window.selectedEdges = [];
     }
 
     try {
-        // Check if we need to force reinitialization due to different data
-        const currentDataHash = JSON.stringify(window.treeData);
-        const shouldForceReinit = window.lastDataHash && window.lastDataHash !== currentDataHash;
+        // Ensure we have tree data from the parser (universal)
+        if (!window.treeData) {
+            throw new Error("No tree data available. Please load a file first.");
+        }
+
+        console.log("Using parsed tree data (parser-independent)");
         
-        if (shouldForceReinit) {
-            console.log("Different data detected, forcing complete reinitialization...");
-            forceCompleteReinitialization();
+        // Apply universal spacing logic if enabled
+        let processedTreeData = window.treeData;
+        if (typeof window.applySpacingToTreeData === 'function') {
+            processedTreeData = window.applySpacingToTreeData(window.treeData, window.applySpacing);
+        } else if (typeof window.applySpacing !== 'undefined' && window.applySpacing === true && typeof applyNodeSpacing === 'function') {
+            // Fallback to direct spacing application
+            console.log("[INFO] Applying node spacing to parsed data");
+            let spacedVertices = applyNodeSpacing(window.treeData.vertices, sphereRadius, window.treeData.vertexValues, window.treeData.vertexTypes);
+            processedTreeData = { ...window.treeData, vertices: spacedVertices };
         }
         
-        // Store current data hash for comparison
-        window.lastDataHash = currentDataHash;
+        // Set global variables from processed data
+        vertices = processedTreeData.vertices;
+        edges = processedTreeData.edges;
+        vertexTypes = processedTreeData.vertexTypes;
+        vertexValues = processedTreeData.vertexValues;
         
-        // Replace the condition check:
-        if (!shouldForceReinit && typeof prevOffData !== 'undefined' && offData && offData === prevOffData && window.prevSpacing === window.applySpacing) {
-            console.log("Same graph data is already initialized, skipping parsing part of initialization.");
-            // // Only update radius-dependent data, not recreate everything
-            // updateInstanceData(); // Create this new function
-            // return;
+        // Initialize validVertices and validTypes
+        validVertices = [...vertices];
+        validTypes = [...vertexTypes];
+        
+        console.log(`📊 Graph data: ${vertices.length} vertices, ${edges.length} edges`);
+
+        // Initialize camera with proper bounding box calculation
+        if (typeof initializeCamera === 'function') {
+            initializeCamera(vertices);
+        } else {
+            // Fallback: manual camera distance calculation
+            const minX = Math.min(...vertices.map(v => v[0]));
+            const maxX = Math.max(...vertices.map(v => v[0]));
+            const minY = Math.min(...vertices.map(v => v[1]));
+            const maxY = Math.max(...vertices.map(v => v[1]));
+            const minZ = Math.min(...vertices.map(v => v[2]));
+            const maxZ = Math.max(...vertices.map(v => v[2]));
+            
+            const rangeX = maxX - minX;
+            const rangeY = maxY - minY;
+            const rangeZ = maxZ - minZ;
+            const maxRange = Math.max(rangeX, rangeY, rangeZ);
+            
+            cameraDistance = maxRange * 2.5;
+            console.log(`📷 Camera distance set to: ${cameraDistance}`);
         }
-        else{
-            // Use data from the visualizer API (parser-independent)
-            if (window.treeData) {
-                console.log("Using tree data from API (parser-independent)");
-                
-                // Apply universal spacing logic
-                let processedTreeData = window.treeData;
-                if (typeof window.applySpacingToTreeData === 'function') {
-                    processedTreeData = window.applySpacingToTreeData(window.treeData, window.applySpacing);
-                } else if (typeof window.applySpacing !== 'undefined' && window.applySpacing === true && typeof applyNodeSpacing === 'function') {
-                    // Fallback to direct spacing application
-                    console.log("[INFO] Applying node spacing to API data (fallback)");
-                    let spacedVertices = applyNodeSpacing(window.treeData.vertices, sphereRadius, window.treeData.vertexValues, window.treeData.vertexTypes);
-                    processedTreeData = { ...window.treeData, vertices: spacedVertices };
-                }
-                
-                vertices = processedTreeData.vertices;
-                edges = processedTreeData.edges;
-                vertexTypes = processedTreeData.vertexTypes;
-                vertexValues = processedTreeData.vertexValues;
-                
-                // Initialize validVertices and validTypes for non-OFF files
-                validVertices = [...vertices];
-                validTypes = [...vertexTypes];
-                
-            } else if (typeof offData !== 'undefined' && offData) {
-                // Fallback: parse OFF data if no tree data is provided via API
-                prevOffData = offData; // Update previous OFF data
-                window.prevSpacing = window.applySpacing; // Update previous spacing
-                const parsedData = parseOFFData(offData);
-                vertices = parsedData.vertices;
-                edges = parsedData.edges;
-                vertexTypes = parsedData.vertexTypes;
-                vertexValues = parsedData.vertexValues;
-                console.log("Using OFF data fallback");
-            } else {
-                throw new Error("No tree data available from API or OFF data");
-            }
 
-            // Initialize camera with proper bounding box calculation
-            if (typeof initializeCamera === 'function') {
-                initializeCamera(vertices);
-            } else {
-                // Fallback: manual camera distance calculation
-                const minX = Math.min(...vertices.map(v => v[0]));
-                const maxX = Math.max(...vertices.map(v => v[0]));
-                const minY = Math.min(...vertices.map(v => v[1]));
-                const maxY = Math.max(...vertices.map(v => v[1]));
-                const minZ = Math.min(...vertices.map(v => v[2]));
-                const maxZ = Math.max(...vertices.map(v => v[2]));
+        // Update Count
+        verticesCount = vertices.length;
 
-                const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ);
-                cameraDistance = Math.max(15, maxDim * 1.5);
-            }
-
-            // Update Count
-            verticesCount = vertices.length;
-
-            // // replace the vertices y coordiante with function value
-            // vertices = vertices.map((vertex, i) => {
-            //     return [vertex[0], vertexValues[i], vertex[2]]; // Use function value as Y coordinate
-            // })
-        }        // Create geometries
+        // Create geometries
         const sphere = createSphereQuad(); // Create billboard quad for spheres
         const cuboid = createCuboidGeometry(); // Use cuboid geometry for pipes
         sphereIndexCount = sphere.indices.length;
-        pipeIndexCount = cuboid.indices.length;        let instanceObjects = updateInstanceData(); // Create this new function
+        pipeIndexCount = cuboid.indices.length;
+
+        let instanceObjects = updateInstanceData(); // Create this new function
         
         if (!instanceObjects || !instanceObjects.instanceData || !instanceObjects.pipeInstanceData) {
             throw new Error("Failed to create instance data");
@@ -323,10 +296,9 @@ async function initializeGraph(offData = null) {
         
         let instanceData = instanceObjects.instanceData; // Sphere instance data
         let pipeInstanceData = instanceObjects.pipeInstanceData; // Pipe instance data
-        let edgesCount = instanceObjects.edgeCount; // Number of edges for pipes
+        let pipeEdgesCount = instanceObjects.edgeCount; // Number of edges for pipes
         
         console.log(`[DEBUG] Instance data created: ${instanceData.length / 7} spheres, ${pipeInstanceData.length / 17} pipe segments`);
-
 
         // Count different status type points
         const counts = {
@@ -340,7 +312,7 @@ async function initializeGraph(offData = null) {
         });
 
         console.log(`[SUCCESS] Loaded graph: ${verticesCount} vertices, 
-            ${edgesCount} L-shaped edges | Minima: ${counts[NODE_TYPES.MINIMUM]}, 
+            ${pipeEdgesCount} L-shaped edges | Minima: ${counts[NODE_TYPES.MINIMUM]}, 
             Saddles: ${counts[NODE_TYPES.SADDLE]}, Maxima: ${counts[NODE_TYPES.MAXIMUM]}`
         );
 
@@ -361,20 +333,16 @@ async function initializeGraph(offData = null) {
                 uCameraPosLocation: gl.getUniformLocation(sphereProgram, "uCameraPos"),
                 uColorLocation: gl.getUniformLocation(sphereProgram, "uColor"),
                 uInvViewMatrix: gl.getUniformLocation(sphereProgram, "uInvViewMatrix"),
-                uLight1Dir: gl.getUniformLocation(sphereProgram, "uLight1Dir"),
-                uLight1Color: gl.getUniformLocation(sphereProgram, "uLight1Color"),
-                uLight2Dir: gl.getUniformLocation(sphereProgram, "uLight2Dir"),
-                uLight2Color: gl.getUniformLocation(sphereProgram, "uLight2Color")
+                uLight1Dir: gl.getUniformLocation(sphereProgram, "uLightDir"),
+                uLight1Color: gl.getUniformLocation(sphereProgram, "uLightColor")
             };            gl.useProgram(pipeProgram);            pipeUniforms = {
                 uProjectionMatrix: gl.getUniformLocation(pipeProgram, "uProjectionMatrix"),
                 uViewMatrix: gl.getUniformLocation(pipeProgram, "uViewMatrix"),
                 uModelMatrix: gl.getUniformLocation(pipeProgram, "uModelMatrix"),
                 uCameraPos: gl.getUniformLocation(pipeProgram, "uCameraPos"),
                 uInvViewMatrix: gl.getUniformLocation(pipeProgram, "uInvViewMatrix"),
-                uLight1Dir: gl.getUniformLocation(pipeProgram, "uLight1Dir"),
-                uLight1Color: gl.getUniformLocation(pipeProgram, "uLight1Color"),
-                uLight2Dir: gl.getUniformLocation(pipeProgram, "uLight2Dir"),
-                uLight2Color: gl.getUniformLocation(pipeProgram, "uLight2Color")
+                uLight1Dir: gl.getUniformLocation(pipeProgram, "uLightDir"),
+                uLight1Color: gl.getUniformLocation(pipeProgram, "uLightColor")
             };
         }
 
@@ -518,6 +486,13 @@ async function initializeGraph(offData = null) {
             if (typeof updatePickingData !== 'undefined') {
                 updatePickingData();
             }
+        }
+
+        // Auto-start edge selection monitoring
+        if (typeof window.edgeSelectionMonitor !== 'undefined') {
+            setTimeout(() => {
+                window.edgeSelectionMonitor.startMonitoring();
+            }, 500);
         }
 
         // Update viewport to ensure proper rendering

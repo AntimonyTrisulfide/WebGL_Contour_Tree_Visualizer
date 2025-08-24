@@ -177,7 +177,7 @@ function handleCameraMovement() {
                 initializeGraph(); // Call without offData for API data
             } else if (typeof offData !== 'undefined' && offData) {
                 console.log('[INFO] Re-initializing with OFF data (spacing toggled)');
-                initializeGraph(offData);
+                initializeGraph();
             } else {
                 console.log('[WARNING] No data available to re-initialize with spacing toggle');
             }

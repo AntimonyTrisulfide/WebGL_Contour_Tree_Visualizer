@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Contour Tree Visualizer</title>
+    <link rel="stylesheet" href="../style.css">
+    <script src="../lib/gl-matrix-min.js"></script>
+    <script>
+        // Make gl-matrix components available globally
+        window.mat4 = glMatrix.mat4;
+        window.vec3 = glMatrix.vec3;
+        window.vec4 = glMatrix.vec4;
+        window.mat3 = glMatrix.mat3;
+    </script>
+    <!-- Core visualizer files -->
+    <script src="../src/globalvar.js" defer></script>
+    <script src="../src/dataHandler.js"></script>
+    <script src="../src/universalParser.js"></script>
+    <script src="../src/primitives.js"></script>
+    <script src="../src/selectionManager.js"></script>
+    <script src="../src/uiManager.js"></script>
+    <script src="../src/input.js" defer></script>
+    <script src="../src/camera.js"></script>
+    <script src="../src/initialize.js"></script>
+    <script src="../src/renderer.js"></script>
+    <script src="../src/mousePicking.js"></script>
+    <script src="../src/edgeInfo.js"></script>
+    <script src="../src/multipleEdgeInfo.js"></script>
+    <script src="../src/visualizerAPI.js"></script>
+    <script src="../src/debug.js"></script>
+</head>
+<body>
+    <div class="controls">
+        <h3>Basic Contour Tree Visualizer</h3>
+        <button id="loadBasicTree" class="file-input-label">Load Basic Tree</button>
+        
+        <div class="radius-controls">
+            <div class="slider-control">
+                <label for="sphereRadiusSlider">Sphere Radius: <span id="sphereRadiusValue">0.1</span></label>
+                <input type="range" id="sphereRadiusSlider" min="0.01" max="0.5" step="0.01" value="0.1">
+            </div>
+            <div class="slider-control">
+                <label for="pipeRadiusSlider">Pipe Radius: <span id="pipeRadiusValue">0.02</span></label>
+                <input type="range" id="pipeRadiusSlider" min="0.001" max="0.1" step="0.001" value="0.02">
+            </div>
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>Simple Edge Selection Test</h3>
+        <p>Click on edges (gray pipes) to select them. The selection is now fully integrated into the library.</p>
+        <p><strong>Controls:</strong></p>
+        <ul>
+            <li><strong>Left Click:</strong> Select single edge (replaces previous selection)</li>
+            <li><strong>Ctrl + Left Click:</strong> Toggle edge in selection (multi-select)</li>
+            <li><strong>Mouse Drag:</strong> Rotate view</li>
+            <li><strong>Mouse Wheel:</strong> Zoom in/out</li>
+            <li><strong>Clear Selection Button:</strong> Appears automatically when edges are selected</li>
+        </ul>
+        <p><strong>Node Types:</strong> Blue=Minimum, Cyan=Saddle, Red=Maximum</p>
+    </div>
+
+    <!-- Minimal edge info panels (hidden by default) -->
+    <div id="edgeInfoPanel" class="edge-info-panel collapsed" style="display: none;">
+        <div class="edge-info-header" id="edgeInfoHeader">
+            <span class="edge-info-title">Edge Information</span>
+            <button class="edge-info-toggle" id="edgeInfoToggle">▼</button>
+        </div>
+        <div class="edge-info-content" id="edgeInfoContent">
+            <div class="edge-info-item">
+                <strong>Edge Number:</strong> <span id="edgeNumber">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Vertex:</strong> <span id="fromVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Vertex:</strong> <span id="toVertex">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Type:</strong> <span id="fromVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Type:</strong> <span id="toVertexType">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>From Value:</strong> <span id="fromVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>To Value:</strong> <span id="toVertexValue">-</span>
+            </div>
+            <div class="edge-info-item">
+                <strong>Connection Type:</strong> <span id="connectionType">-</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multiple Edge Info Panel (hidden by default) -->
+    <div id="multipleEdgeInfoPanel" class="multiple-edge-info-panel collapsed" style="display: none;">
+        <div class="multiple-edge-info-header" id="multipleEdgeInfoHeader">
+            <span class="multiple-edge-info-title">Selected Edges (<span id="selectedEdgeCount">0</span>)</span>
+            <div class="multiple-edge-info-controls">
+                <button id="clearAllEdges" class="control-button">Clear All</button>
+                <button id="collapseAllEdges" class="control-button">Collapse All</button>
+                <button id="expandAllEdges" class="control-button">Expand All</button>
+                <button class="multiple-edge-info-toggle" id="multipleEdgeInfoToggle">▼</button>
+            </div>
+        </div>
+        <div class="multiple-edge-info-content" id="multipleEdgeInfoContent">
+            <div id="edgesContainer"></div>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        // Initialize viewport after canvas is set up
+        if (typeof updateViewport === 'function') {
+            updateViewport();
+        }
+
+        // Basic tree data - a simple tree structure
+        function createBasicTree() {
+            console.log('Creating basic tree data...');
+            
+            // Define vertices in 3D space
+            const vertices = [
+                [0, 0, 0],      // 0 - Root minimum
+                [-1, 1, 0],     // 1 - Left saddle
+                [1, 1, 0],      // 2 - Right saddle
+                [-1.5, 2, 0],   // 3 - Left maximum
+                [1.5, 2, 0],    // 4 - Right maximum
+                [0, 2.5, 0]     // 5 - Top maximum
+            ];
+            
+            // Define edges connecting vertices
+            const edges = [
+                [0, 1],  // Root to left saddle
+                [0, 2],  // Root to right saddle
+                [1, 3],  // Left saddle to left maximum
+                [1, 5],  // Left saddle to top maximum
+                [2, 4],  // Right saddle to right maximum
+                [2, 5]   // Right saddle to top maximum
+            ];
+            
+            // Define vertex types (0=minimum, 1=saddle, 2=maximum)
+            const vertexTypes = [
+                NODE_TYPES.MINIMUM,  // 0
+                NODE_TYPES.SADDLE,   // 1
+                NODE_TYPES.SADDLE,   // 2
+                NODE_TYPES.MAXIMUM,  // 3
+                NODE_TYPES.MAXIMUM,  // 4
+                NODE_TYPES.MAXIMUM   // 5
+            ];
+            
+            // Define vertex values (scalar field values)
+            const vertexValues = [0.0, 0.5, 0.5, 1.0, 1.0, 1.2];
+            
+            return {
+                vertices,
+                edges,
+                vertexTypes,
+                vertexValues
+            };
+        }
+
+        // Configuration for the visualizer
+        function getVisualizerConfig() {
+            const currentSphereRadius = parseFloat(document.getElementById('sphereRadiusSlider').value);
+            const currentPipeRadius = parseFloat(document.getElementById('pipeRadiusSlider').value);
+            
+            return {
+                lightConfig: {
+                    directions: {
+                        dir: [0.0, 0.0, 1.0]
+                    },
+                    colors: {
+                        col: [1.0, 1.0, 1.0]
+                    }
+                },
+                colors: {
+                    nodeColors: {
+                        [NODE_TYPES.MINIMUM]: [0.000, 0.000, 1.000, 1.0],   // Blue
+                        [NODE_TYPES.SADDLE]: [0.000, 1.000, 1.000, 1.0],    // Cyan
+                        [NODE_TYPES.MAXIMUM]: [1.000, 0.000, 0.000, 1.0]    // Red
+                    },
+                    pipeColor: [0.9, 0.9, 0.9, 1.0],
+                    backgroundColor: [0.1, 0.1, 0.1, 1.0]
+                },
+                globalVars: {
+                    sphereRadius: currentSphereRadius,
+                    pipeRadius: currentPipeRadius
+                }
+            };
+        }
+
+        // Function to visualize the tree
+        function visualizeTree(treeData) {
+            console.log('Visualizing tree data...');
+            
+            // Store the tree data globally
+            window.currentTreeData = treeData;
+            window.treeData = treeData;
+            
+            // Get configuration
+            const config = getVisualizerConfig();
+            
+            // Use the visualizer API to display the tree
+            if (typeof invokeContourTreeVisualizer === 'function') {
+                const result = invokeContourTreeVisualizer(
+                    treeData,
+                    config.lightConfig,
+                    config.colors,
+                    config.globalVars,
+                    [] // No initial edge selection
+                );
+                
+                if (result.success) {
+                    console.log('✅ Successfully visualized tree:', result.message);
+                    console.log('🎯 Edge selection is now active - click on edges to select them!');
+                    console.log('🔍 Selection system is fully integrated into the library');
+                } else {
+                    console.error('❌ Failed to visualize tree:', result.message);
+                }
+            } else {
+                console.error('❌ Visualizer API not available');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, setting up basic tree visualizer...');
+            
+            // Initialize slider values
+            const sphereSlider = document.getElementById('sphereRadiusSlider');
+            const pipeSlider = document.getElementById('pipeRadiusSlider');
+            const sphereValueDisplay = document.getElementById('sphereRadiusValue');
+            const pipeValueDisplay = document.getElementById('pipeRadiusValue');
+            
+            sphereValueDisplay.textContent = sphereSlider.value;
+            pipeValueDisplay.textContent = pipeSlider.value;
+            
+            // Load basic tree button
+            document.getElementById('loadBasicTree').addEventListener('click', function() {
+                console.log('Loading basic tree...');
+                const treeData = createBasicTree();
+                visualizeTree(treeData);
+            });
+            
+            // Sphere radius slider
+            sphereSlider.addEventListener('input', function() {
+                const newRadius = parseFloat(this.value);
+                sphereValueDisplay.textContent = newRadius.toFixed(3);
+                
+                // Update global variables
+                window.sphereRadius = newRadius;
+                if (typeof sphereRadius !== 'undefined') {
+                    sphereRadius = newRadius;
+                }
+                
+                // Re-visualize if tree data exists
+                if (window.currentTreeData) {
+                    visualizeTree(window.currentTreeData);
+                }
+            });
+            
+            // Pipe radius slider
+            pipeSlider.addEventListener('input', function() {
+                const newRadius = parseFloat(this.value);
+                pipeValueDisplay.textContent = newRadius.toFixed(3);
+                
+                // Update global variables
+                window.pipeRadius = newRadius;
+                if (typeof pipeRadius !== 'undefined') {
+                    pipeRadius = newRadius;
+                }
+                
+                // Re-visualize if tree data exists
+                if (window.currentTreeData) {
+                    visualizeTree(window.currentTreeData);
+                }
+            });
+            
+            // Automatically load the basic tree when page loads
+            setTimeout(function() {
+                document.getElementById('loadBasicTree').click();
+            }, 500);
+            
+            // Canvas resize handler
+            window.addEventListener('resize', function() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                if (gl) {
+                    gl.viewport(0, 0, canvas.width, canvas.height);
+                    
+                    // Update projection matrix
+                    if (typeof projectionMatrix !== 'undefined') {
+                        mat4.perspective(projectionMatrix, Math.PI/3, canvas.width / canvas.height, 0.1, 50);
+                    }
+                    
+                    // Re-render
+                    if (typeof renderGraph === 'function') {
+                        renderGraph();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

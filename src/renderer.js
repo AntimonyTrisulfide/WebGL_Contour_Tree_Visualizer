@@ -374,40 +374,32 @@ function renderGraph() {
         gl.uniform3fv(pipeUniforms.uCameraPos, eye);    
     }
     
-    // Set dual-tone camera headlamp lighting
-    // NOTE: These are DIRECTIONAL LIGHTS (at infinity), not point lights
-    // The values represent light directions in world space, not positions
+    // Set single directional white light
     if (pipeUniforms.uLight1Dir) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light1Dir = [0.6, 0.4, 0.7]; // Modified: Slightly different angle for variation
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.key) {
-            light1Dir = window.lightConfig.directions.key;
+        if (window.usingAPILighting && window.lightConfig) {
+            if (window.lightConfig.lightDirection) {
+                lightDir = window.lightConfig.lightDirection;
+            } else if (window.lightConfig.directions && window.lightConfig.directions.dir) {
+                lightDir = window.lightConfig.directions.dir;
+            }
         }
-        gl.uniform3fv(pipeUniforms.uLight1Dir, light1Dir);
+        else{
+            console.log("API Lighting Direction Not Available");
+        }
+        gl.uniform3fv(pipeUniforms.uLight1Dir, lightDir);
     }
     if (pipeUniforms.uLight1Color) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light1Color = [0.7, 0.6, 0.5]; // Modified: Reduced intensity warm light
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.colors && window.lightConfig.colors.key) {
-            light1Color = window.lightConfig.colors.key;
+        if (window.usingAPILighting && window.lightConfig) {
+            if (window.lightConfig.lightColor) {
+                lightColor = window.lightConfig.lightColor;
+            } else if (window.lightConfig.colors && window.lightConfig.colors.col) {
+                lightColor = window.lightConfig.colors.col;
+            }
         }
-        gl.uniform3fv(pipeUniforms.uLight1Color, light1Color);
-    }
-    if (pipeUniforms.uLight2Dir) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light2Dir = [-0.4, -0.3, 0.9]; // Modified: Slightly different angle for variation
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.fill) {
-            light2Dir = window.lightConfig.directions.fill;
+        else{
+            console.log("API Lighting Color Not Available");
         }
-        gl.uniform3fv(pipeUniforms.uLight2Dir, light2Dir);
-    }
-    if (pipeUniforms.uLight2Color) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light2Color = [0.5, 0.6, 0.8]; // Modified: Reduced intensity cool light
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.colors && window.lightConfig.colors.fill) {
-            light2Color = window.lightConfig.colors.fill;
-        }
-        gl.uniform3fv(pipeUniforms.uLight2Color, light2Color);
+        gl.uniform3fv(pipeUniforms.uLight1Color, lightColor);
     }
 
     gl.bindVertexArray(pipeVAO);
@@ -438,40 +430,30 @@ function renderGraph() {
         gl.uniformMatrix4fv(sphereUniforms.uInvViewMatrix, false, invViewMatrix);
     }
     
-    // Set dual-tone camera headlamp lighting (same as pipes)
-    // NOTE: These are DIRECTIONAL LIGHTS (at infinity), not point lights
-    // The values represent light directions in world space, not positions
+    // Set single directional white light (same as pipes)
     if (sphereUniforms.uLight1Dir) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light1Dir = [0.6, 0.4, 0.7]; // Modified: Slightly different angle for variation
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.key) {
-            light1Dir = window.lightConfig.directions.key;
+        // Use API lighting if available, otherwise use hardcoded default
+        let lightDir = [0.5, 0.5, 0.7]; // Default directional light from front-top-right
+        if (window.usingAPILighting && window.lightConfig) {
+            if (window.lightConfig.lightDirection) {
+                lightDir = window.lightConfig.lightDirection;
+            } else if (window.lightConfig.directions && window.lightConfig.directions.key) {
+                lightDir = window.lightConfig.directions.key;
+            }
         }
-        gl.uniform3fv(sphereUniforms.uLight1Dir, light1Dir);
+        gl.uniform3fv(sphereUniforms.uLight1Dir, lightDir);
     }
     if (sphereUniforms.uLight1Color) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light1Color = [0.7, 0.6, 0.5]; // Modified: Reduced intensity warm light
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.colors && window.lightConfig.colors.key) {
-            light1Color = window.lightConfig.colors.key;
+        // Use API lighting if available, otherwise use white light
+        let lightColor = [1.0, 1.0, 1.0]; // Pure white light
+        if (window.usingAPILighting && window.lightConfig) {
+            if (window.lightConfig.lightColor) {
+                lightColor = window.lightConfig.lightColor;
+            } else if (window.lightConfig.colors && window.lightConfig.colors.key) {
+                lightColor = window.lightConfig.colors.key;
+            }
         }
-        gl.uniform3fv(sphereUniforms.uLight1Color, light1Color);
-    }
-    if (sphereUniforms.uLight2Dir) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light2Dir = [-0.4, -0.3, 0.9]; // Modified: Slightly different angle for variation
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.directions && window.lightConfig.directions.fill) {
-            light2Dir = window.lightConfig.directions.fill;
-        }
-        gl.uniform3fv(sphereUniforms.uLight2Dir, light2Dir);
-    }
-    if (sphereUniforms.uLight2Color) {
-        // Use API lighting if available, otherwise use hardcoded defaults
-        let light2Color = [0.5, 0.6, 0.8]; // Modified: Reduced intensity cool light
-        if (window.usingAPILighting && window.lightConfig && window.lightConfig.colors && window.lightConfig.colors.fill) {
-            light2Color = window.lightConfig.colors.fill;
-        }
-        gl.uniform3fv(sphereUniforms.uLight2Color, light2Color);
+        gl.uniform3fv(sphereUniforms.uLight1Color, lightColor);
     }
 
     gl.bindVertexArray(sphereVAO);
@@ -596,7 +578,7 @@ function updatePipeHighlighting() {
         console.warn('Pipe instance buffer not available, reinitializing graph');
         // If buffer doesn't exist, we need to reinitialize
         if (typeof offData !== 'undefined' && offData) {
-            initializeGraph(offData);
+            initializeGraph();
         }
         return;
     }

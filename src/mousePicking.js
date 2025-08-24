@@ -345,10 +345,18 @@ function renderPickingPass() {
 
 // Handle mouse click for edge selection (optimized GPU picking)
 function handleMousePick(mouseX, mouseY, event = null) {
+    console.log('🎯 handleMousePick called with:', {mouseX, mouseY, event: event ? 'provided' : 'null'});
+    
     if (!pickingFramebuffer || !edges || edges.length === 0) {
-        console.error('Mouse picking prerequisites not met');
+        console.error('❌ Mouse picking prerequisites not met:', {
+            pickingFramebuffer: !!pickingFramebuffer,
+            edges: edges ? edges.length : 'null',
+            edgesLength: edges ? edges.length : 0
+        });
         return;
     }
+
+    console.log('✅ Mouse picking prerequisites met, proceeding...');
 
     // Render picking pass
     renderPickingPass();
@@ -358,89 +366,73 @@ function handleMousePick(mouseX, mouseY, event = null) {
     const x = Math.floor((mouseX - rect.left) * (canvas.width / rect.width));
     const y = Math.floor((canvas.height - (mouseY - rect.top) * (canvas.height / rect.height))); // Flip Y coordinate
     
+    console.log('🎯 Mouse coordinates:', {mouseX, mouseY, x, y});
+    
     // Read pixel at mouse position
     gl.bindFramebuffer(gl.FRAMEBUFFER, pickingFramebuffer);
     const pixel = new Uint8Array(4);
     gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+    console.log('🎯 Pixel color at mouse position:', pixel);
+
     // Check if we hit an edge
     if (pixel[0] === 0 && pixel[1] === 0 && pixel[2] === 0) {
         // Clicked on background - do nothing to preserve selections
-        console.log('Background click - maintaining current selection');
+        console.log('🎯 Background click - maintaining current selection');
         return;
     } else {
         // Convert pixel color back to edge index
         const colorKey = `${pixel[0]},${pixel[1]},${pixel[2]}`;
+        console.log('🎯 Looking for edge with color key:', colorKey);
+        console.log('🎯 Available color keys:', Array.from(edgeColorMap.keys()));
+        
         const edgeIndex = edgeColorMap.get(colorKey);
         
         if (edgeIndex !== undefined) {
-            // Handle multiple selection with Ctrl key
-            if (event && event.ctrlKey) {
-                // Ctrl+click: toggle edge in selection
-                const edgeIndexInSelection = window.selectedEdges.indexOf(edgeIndex);
-                if (edgeIndexInSelection > -1) {
-                    // Edge is selected, remove it
-                    window.selectedEdges.splice(edgeIndexInSelection, 1);
-                    console.log(`[INFO] Edge ${edgeIndex} removed from selection`);
-                } else {
-                    // Edge is not selected, add it
-                    window.selectedEdges.push(edgeIndex);
-                    console.log(`[SUCCESS] Edge ${edgeIndex} added to selection`);
-                }
+            console.log('🎯 Found edge index:', edgeIndex);
+            
+            // Use the selection manager to handle the selection
+            if (window.selectionManager) {
+                const isCtrlPressed = event && event.ctrlKey;
+                window.selectionManager.handleMouseClick(edgeIndex, isCtrlPressed);
                 
-                // Synchronize edgeId array with selectedEdges for integration compatibility
-                if (typeof window.syncEdgeIdArray === 'function') {
-                    window.syncEdgeIdArray();
-                }
-                
-                // Update selectedEdge for backward compatibility (use last selected)
-                selectedEdge = window.selectedEdges.length > 0 ? window.selectedEdges[window.selectedEdges.length - 1] : null;
+                console.log(`📊 Selected edges array:`, window.selectionManager.getSelection());
+                console.log(`📊 Selected edges count:`, window.selectionManager.getSelectionCount());
             } else {
-                // Regular click: select only this edge
-                window.selectedEdges = [edgeIndex];
-                selectedEdge = edgeIndex; // Keep for backward compatibility
-                console.log(`[SUCCESS] Edge ${edgeIndex} selected`);
+                console.error('❌ Selection manager not found - falling back to legacy behavior');
                 
-                // Synchronize edgeId array with selectedEdges for integration compatibility
-                if (typeof window.syncEdgeIdArray === 'function') {
-                    window.syncEdgeIdArray();
+                // Fallback to legacy behavior if selection manager is not available
+                if (event && event.ctrlKey) {
+                    const edgeIndexInSelection = window.selectedEdges.indexOf(edgeIndex);
+                    if (edgeIndexInSelection > -1) {
+                        window.selectedEdges.splice(edgeIndexInSelection, 1);
+                        console.log(`🔴 Edge ${edgeIndex} removed from selection`);
+                    } else {
+                        window.selectedEdges.push(edgeIndex);
+                        console.log(`🟢 Edge ${edgeIndex} added to selection`);
+                    }
+                    selectedEdge = window.selectedEdges.length > 0 ? window.selectedEdges[window.selectedEdges.length - 1] : null;
+                } else {
+                    window.selectedEdges = [edgeIndex];
+                    selectedEdge = edgeIndex;
+                    console.log(`🔵 Edge ${edgeIndex} selected (replacing previous selection)`);
                 }
-            }
-            
-            const edgeSelectInput = document.getElementById('edgeSelect');
-            if (edgeSelectInput) {
-                edgeSelectInput.value = window.selectedEdges.join(', ');
-            }
-            
-            // Use both single and multiple edge info display
-            if (typeof updateEdgeInfo !== 'undefined' && window.selectedEdges.length === 1) {
-                updateEdgeInfo(window.selectedEdges[0]); // Single edge display for single selection
-            }
-            
-            if (typeof updateMultipleEdgeInfo !== 'undefined') {
-                updateMultipleEdgeInfo(window.selectedEdges); // Multiple edge display for all selections
-            }
-            
-            // Update menu system if available
-            if (typeof menuSystem !== 'undefined' && menuSystem.updateOnEdgeSelectionChange) {
-                menuSystem.updateOnEdgeSelectionChange(window.selectedEdges.length);
+                
+                // Legacy visualization update
+                if (typeof updateMultipleEdgeHighlighting !== 'undefined') {
+                    updateMultipleEdgeHighlighting();
+                } else if (typeof updatePipeHighlighting !== 'undefined') {
+                    updatePipeHighlighting();
+                }
+                
+                if (typeof renderGraph === 'function') {
+                    renderGraph();
+                }
             }
         } else {
             console.warn(`No edge found for color: ${colorKey}`);
         }
-    }
-
-    // Update pipe highlighting to reflect new selection
-    if (typeof updateMultipleEdgeHighlighting !== 'undefined') {
-        updateMultipleEdgeHighlighting();
-    } else if (typeof updatePipeHighlighting !== 'undefined') {
-        updatePipeHighlighting();
-    }
-
-    // Re-render the scene with the new selection
-    if (pipeUniforms && sphereUniforms) {
-        renderGraph();
     }
 }
 

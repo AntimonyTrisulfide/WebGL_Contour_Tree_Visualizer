@@ -4,23 +4,17 @@
 
 /*
 
-Issues with the code:
-    1. The Overlapping of Spheres and Cylinders is still present.
-    2. Issues with anti-aliasing on the cylinders (jagged edges).
-    3. by mapping it is possible for maxima to remain below the saddles (i.e. the saddle maxima arc length is not mapping correctly in some edge cases (Block 1 WRESNET))
-
-New Functionality (to add)
-    2. Use UBO instead of uniforms separately for each object.
-    3. Add 
-
+Current Status:
+    - Need to ensure that there are no conflicts with the global variables and the existing code when calling using the API.
+    - Callback for the edgeselection is available and can be used to update the selected edges and use it to recall the drawing loop.
 */
 
 // Global variables and Default Data
 
 // const canvas = document.getElementById("canvas"); // get canvas reference (by selecting the element with canvas tag in HTML)
 const gl = canvas.getContext("webgl2", { 
-    // antialias: true,
-    antialias: false, // Disable antialiasing for now
+    antialias: true,
+    // antialias: false, // Disable antialiasing for now
     alpha: false,
     depth: true,
     stencil: false,
@@ -100,6 +94,21 @@ function syncEdgeIdArray() {
     window.edgeId = [...window.selectedEdges];
 }
 
+// Selection change listener for automatic UI updates
+function onSelectionChange(selectedEdges) {
+    console.log('Selection changed:', selectedEdges);
+    
+    // Update legacy selectedEdge variable for backwards compatibility
+    if (typeof selectedEdge !== 'undefined') {
+        selectedEdge = selectedEdges.length > 0 ? selectedEdges[selectedEdges.length - 1] : null;
+    }
+    
+    // Trigger UI updates
+    if (window.uiManager) {
+        window.uiManager.updateUI();
+    }
+}
+
 // Function to update viewport and projection matrix on canvas resize
 function updateViewport() {
     if (gl && canvas) {
@@ -138,6 +147,10 @@ window.edgeId = edgeId;
 // Make spacing variables globally accessible
 window.applySpacing = applySpacing;
 window.prevSpacing = prevSpacing;
+
+// Make radius variables globally accessible
+window.sphereRadius = sphereRadius;
+window.pipeRadius = pipeRadius;
 
 // Initialize edgeId array synchronization on page load
 document.addEventListener('DOMContentLoaded', function() {

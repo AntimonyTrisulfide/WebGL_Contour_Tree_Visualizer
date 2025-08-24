@@ -40,7 +40,7 @@ if (fileInputElement) {
             menuSystem.updateCurrentFileName(file.name);
         }
         
-        initializeGraph(offData);
+        initializeGraph();
     };reader.readAsText(file);
 });
 
@@ -77,11 +77,21 @@ canvas.addEventListener('mousemove', (e) => {
 
 canvas.addEventListener('mouseup', (e) => {
     if (e.button === 0) { // Left mouse button
+        console.log('🖱️ Mouse up event detected');
+        console.log('🖱️ isDraggingInput:', isDraggingInput, 'hasMoved:', hasMoved);
+        
         if (isDraggingInput && !hasMoved) {
             // This was a click, not a drag - handle edge selection
+            console.log('🎯 Click detected - calling handleMousePick');
+            console.log('🎯 handleMousePick exists:', typeof handleMousePick !== 'undefined');
+            
             if (typeof handleMousePick !== 'undefined') {
                 handleMousePick(e.clientX, e.clientY, e);
+            } else {
+                console.error('❌ handleMousePick function not found');
             }
+        } else {
+            console.log('🖱️ This was a drag, not a click');
         }
         isDraggingInput = false;
         hasMoved = false;
@@ -174,21 +184,4 @@ document.getElementById('fpsToggleButton').addEventListener('click', function ()
         console.log('[SUCCESS] FPS counter started');
     }
 });
-
-window.onload = () => {
-    // Initialize edge info panel
-    if (typeof initializeEdgeInfoPanel !== 'undefined') {
-        initializeEdgeInfoPanel();
-    }
-    
-    //Load default OFF file if available
-    if(offData !== "") {
-        initializeGraph(offData);
-    }
-    else{
-        console.log('[ERROR] Please select a .off file');
-    }
-}
-} else {
-    console.log('[INFO] File input element not found, skipping OFF file handler');
 }

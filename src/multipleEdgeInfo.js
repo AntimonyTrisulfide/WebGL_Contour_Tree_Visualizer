@@ -130,11 +130,6 @@ function updateMultipleEdgeInfo(edgeIndices) {
         // Show the panel
         showMultipleEdgeInfoPanel();
         
-        // For single edge selection, also update the simple edge info panel
-        if (edgeIndices.length === 1 && typeof updateEdgeInfo === 'function') {
-            updateEdgeInfo(edgeIndices[0]);
-        }
-        
         console.log(`Multiple edge info updated for ${selectedEdgesData.length} edges`);
     } catch (error) {
         console.error('Error updating multiple edge info:', error);

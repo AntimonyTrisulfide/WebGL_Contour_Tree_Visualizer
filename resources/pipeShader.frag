@@ -6,10 +6,8 @@ uniform mat4 uModelMatrix;
 uniform mat4 uViewMatrix;
 uniform mat4 uProjectionMatrix;
 uniform vec3 uCameraPos;
-uniform vec3 uLight1Dir;
-uniform vec3 uLight1Color;
-uniform vec3 uLight2Dir;
-uniform vec3 uLight2Color;
+uniform vec3 uLightDir;
+uniform vec3 uLightColor;
 
 // Inputs to the fragment shader
 in vec3 vCylStart;
@@ -162,15 +160,25 @@ void main() {
     vec3 axisPoint = modelCylStart + distAlongAxis * cylDir;
     vec3 toAxis = modelHitPoint - axisPoint;
     
-    // Ensure we have a valid normal vector
+    // Ensure we have a valid normal vector with improved fallback
     float toAxisLength = length(toAxis);
     if (toAxisLength < 1e-6) {
-        // Fallback for edge case: use perpendicular to cylinder axis
-        vec3 perpendicular = abs(cylDir.x) < 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-        toAxis = normalize(cross(cylDir, perpendicular)) * vRadius;
+        // Improved fallback: create a proper perpendicular vector
+        vec3 perpendicular;
+        if (abs(cylDir.x) < 0.57735) { // 1/sqrt(3) - avoid near-parallel vectors
+            perpendicular = normalize(cross(cylDir, vec3(1.0, 0.0, 0.0)));
+        } else if (abs(cylDir.y) < 0.57735) {
+            perpendicular = normalize(cross(cylDir, vec3(0.0, 1.0, 0.0)));
+        } else {
+            perpendicular = normalize(cross(cylDir, vec3(0.0, 0.0, 1.0)));
+        }
+        toAxis = perpendicular * vRadius;
+    } else {
+        // Normalize the vector from axis to hit point
+        toAxis = normalize(toAxis);
     }
     
-    vec3 modelNormal = normalize(toAxis);
+    vec3 modelNormal = toAxis;
     
     // Transform hit point back to world space for depth calculation
     vec4 worldHitPoint = uModelMatrix * vec4(modelHitPoint, 1.0);
@@ -182,7 +190,8 @@ void main() {
     
     // === IMPROVED LIGHTING WITH DUAL-TONE CAMERA HEADLAMP ===
     // Transform normal to world space for lighting calculations
-    mat3 normalMatrix = mat3(uModelMatrix);
+    // Use inverse transpose for proper normal transformation (handles non-uniform scaling)
+    mat3 normalMatrix = transpose(inverse(mat3(uModelMatrix)));
     vec3 worldNormal = normalize(normalMatrix * modelNormal);
     
     // Calculate view direction in world space
@@ -195,21 +204,32 @@ void main() {
         normalDotView = -normalDotView;
     }
     
-    // Use uniform-based dual-tone lighting (camera headlamp style)
-    vec3 light1Dir = normalize(uLight1Dir);
-    vec3 light2Dir = normalize(uLight2Dir);
+    // Use single directional light
+    vec3 lightDir = normalize(uLightDir);
     
-    // Calculate half vectors for specular
-    vec3 halfVector1 = normalize(light1Dir + viewDir);
-    vec3 halfVector2 = normalize(light2Dir + viewDir);
+    // Calculate half vector for specular
+    vec3 halfVector = normalize(lightDir + viewDir);
     
-    // Calculate diffuse contributions with improved falloff
-    float diffuse1 = max(0.0, dot(worldNormal, light1Dir));
-    float diffuse2 = max(0.0, dot(worldNormal, light2Dir));
+    // Calculate diffuse contribution
+    float diffuse = max(0.0, dot(worldNormal, lightDir));
     
-    // Improved specular calculation with restored shininess
-    float specular1 = pow(max(0.0, dot(worldNormal, halfVector1)), 32.0); // Restored high shininess
-    float specular2 = pow(max(0.0, dot(worldNormal, halfVector2)), 32.0); // Made equal for balanced lighting
+    // Apply smooth falloff to diffuse lighting
+    diffuse = smoothstep(0.0, 1.0, diffuse);
+    
+    // Improved specular calculation with enhanced falloff
+    float specularDot = max(0.0, dot(worldNormal, halfVector));
+    
+    // Multiple shininess levels for more natural specular falloff
+    float specular_tight = pow(specularDot, 64.0);  // Tight, sharp highlight
+    float specular_medium = pow(specularDot, 32.0); // Medium highlight
+    float specular_soft = pow(specularDot, 16.0);   // Soft, broader highlight
+    
+    // Combine multiple specular layers with smooth falloff
+    float specular = specular_tight * 0.6 + specular_medium * 0.3 + specular_soft * 0.1;
+    
+    // Viewing angle-based specular falloff (Fresnel-like effect)
+    float specularFresnel = pow(max(0.0, normalDotView), 0.5);
+    specular *= specularFresnel;
     
     // RIM LIGHTING FOR CYLINDERS - More prominent effect
     // Use fresnel-like effect for more natural rim lighting behavior
@@ -225,20 +245,17 @@ void main() {
     // Reduced ambient calculation with subtle tint
     vec3 ambient = baseColor * 0.25 * vec3(0.9, 0.95, 1.0);
     
-    // Reduced diffuse with better light balance
-    vec3 diffuseContrib1 = baseColor * diffuse1 * uLight1Color * 0.4;
-    vec3 diffuseContrib2 = baseColor * diffuse2 * uLight2Color * 0.4;
+    // Diffuse contribution with single white light
+    vec3 diffuseContrib = baseColor * diffuse * uLightColor * 0.6;
     
-    // Enhanced specular highlights with rim lighting
-    vec3 specularContrib1 = uLight1Color * (specular1 + specularEnhancement) * 0.5;
-    vec3 specularContrib2 = uLight2Color * (specular2 + specularEnhancement) * 0.5;
+    // Enhanced specular highlights with improved falloff and rim lighting
+    vec3 specularContrib = uLightColor * (specular + specularEnhancement) * 0.7;
     
     // Rim lighting for better cylinder shape definition
     vec3 rimContrib = vec3(0.15, 0.2, 0.25) * rimLight * 0.08;
     
-    // Combine all contributions with better balance
-    vec3 finalColor = ambient + diffuseContrib1 + diffuseContrib2 + 
-                     specularContrib1 + specularContrib2 + rimContrib;
+    // Combine all contributions with single light
+    vec3 finalColor = ambient + diffuseContrib + specularContrib + rimContrib;
     
     fragColor = vec4(finalColor, 1.0);
 }
