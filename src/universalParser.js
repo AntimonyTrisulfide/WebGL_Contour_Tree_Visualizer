@@ -103,109 +103,14 @@ function parseOFFData(data) {
     };
 }
 
-// Registry of parsers
+// Registry of parsers - Only OFF format supported
 const parserRegistry = {
     '.off': function(data) {
-        // Use the built-in OFF parser if available
+        // Use the built-in OFF parser
         if (typeof parseOFFData === 'function') {
             return parseOFFData(data);
         }
         throw new Error('OFF parser not available');
-    },
-    
-    '.json': function(data) {
-        try {
-            const parsed = JSON.parse(data);
-            return {
-                vertices: parsed.vertices || [],
-                edges: parsed.edges || [],
-                vertexTypes: parsed.vertexTypes || [],
-                vertexValues: parsed.vertexValues || []
-            };
-        } catch (error) {
-            throw new Error('Invalid JSON format: ' + error.message);
-        }
-    },
-    
-    '.xml': function(data) {
-        try {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(data, 'text/xml');
-            
-            const vertices = [];
-            const edges = [];
-            const vertexTypes = [];
-            const vertexValues = [];
-            
-            const vertexNodes = doc.querySelectorAll('vertex');
-            vertexNodes.forEach(node => {
-                const x = parseFloat(node.getAttribute('x'));
-                const y = parseFloat(node.getAttribute('y'));
-                const z = parseFloat(node.getAttribute('z'));
-                const type = parseInt(node.getAttribute('type'));
-                const value = parseFloat(node.getAttribute('value'));
-                
-                vertices.push([x, y, z]);
-                vertexTypes.push(type);
-                vertexValues.push(value);
-            });
-            
-            const edgeNodes = doc.querySelectorAll('edge');
-            edgeNodes.forEach(node => {
-                const from = parseInt(node.getAttribute('from'));
-                const to = parseInt(node.getAttribute('to'));
-                edges.push([from, to]);
-            });
-            
-            return { vertices, edges, vertexTypes, vertexValues };
-        } catch (error) {
-            throw new Error('Invalid XML format: ' + error.message);
-        }
-    },
-    
-    '.csv': function(data) {
-        try {
-            const lines = data.trim().split('\n');
-            const vertices = [];
-            const edges = [];
-            const vertexTypes = [];
-            const vertexValues = [];
-            
-            let isEdgeSection = false;
-            
-            for (let line of lines) {
-                line = line.trim();
-                if (line === 'EDGES') {
-                    isEdgeSection = true;
-                    continue;
-                }
-                
-                if (line === 'VERTICES' || line === '' || line.startsWith('#')) continue;
-                
-                const parts = line.split(',');
-                
-                if (!isEdgeSection) {
-                    // Parse vertex: x,y,z,type,value
-                    vertices.push([
-                        parseFloat(parts[0]),
-                        parseFloat(parts[1]),
-                        parseFloat(parts[2])
-                    ]);
-                    vertexTypes.push(parseInt(parts[3]));
-                    vertexValues.push(parseFloat(parts[4]));
-                } else {
-                    // Parse edge: from,to
-                    edges.push([
-                        parseInt(parts[0]),
-                        parseInt(parts[1])
-                    ]);
-                }
-            }
-            
-            return { vertices, edges, vertexTypes, vertexValues };
-        } catch (error) {
-            throw new Error('Invalid CSV format: ' + error.message);
-        }
     }
 };
 
@@ -314,5 +219,5 @@ window.setupUniversalFileInput = setupUniversalFileInput;
 window.parserRegistry = parserRegistry;
 window.applySpacingToTreeData = applySpacingToTreeData;
 
-console.log('🔧 Universal parser system loaded');
-console.log('📁 Available parsers:', Object.keys(parserRegistry));
+console.log('🔧 OFF parser system loaded');
+console.log('📁 Supported format: OFF');

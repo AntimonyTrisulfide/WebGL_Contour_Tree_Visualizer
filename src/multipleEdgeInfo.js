@@ -54,6 +54,23 @@ function createMultipleEdgeInfoPanel() {
     multipleEdgeInfoContent = document.getElementById('multipleEdgeInfoContent');
     multipleEdgeInfoToggle = document.getElementById('multipleEdgeInfoToggle');
     
+    // Add event listeners to prevent camera control interference
+    multipleEdgeInfoPanel.addEventListener('wheel', function(event) {
+        event.stopPropagation();
+    }, { passive: false });
+    
+    multipleEdgeInfoPanel.addEventListener('mousedown', function(event) {
+        event.stopPropagation();
+    });
+    
+    multipleEdgeInfoPanel.addEventListener('mousemove', function(event) {
+        event.stopPropagation();
+    });
+    
+    multipleEdgeInfoPanel.addEventListener('mouseup', function(event) {
+        event.stopPropagation();
+    });
+    
     // Set up event listeners
     setupEventListeners();
 }

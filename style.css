@@ -97,31 +97,7 @@ canvas {
     background: #F57C00;
 }
 
-.instructions {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    color: rgb(255, 255, 255);
-    padding: 15px;
-    border-radius: 8px;
-    font-size: 12px;
-    max-width: 300px;
-    z-index: 100;
-}
-
-.instructions h3 {
-    margin: 0 0 10px 0;
-    color: #4CAF50;
-}
-
-.instructions ul {
-    margin: 5px 0;
-    padding-left: 15px;
-}
-
-.instructions li {
-    margin: 3px 0;
-}
+/* Old instructions styles removed - replaced with collapsible instructions panel */
 
 .status {
     position: absolute;
@@ -186,6 +162,81 @@ canvas {
     border-radius: 3px;
     min-width: 60px;
     text-align: center;
+}
+
+/* FPS Display in Main View */
+.fps-main-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 500;
+    background: rgba(15, 23, 42, 0.95);
+    border-radius: 8px;
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: opacity 0.3s ease-in-out;
+    pointer-events: auto; /* Ensure display can capture events */
+}
+
+.fps-display-main {
+    color: #3b82f6;
+    font-size: 16px;
+    font-weight: bold;
+    background: transparent;
+    padding: 8px 12px;
+    border-radius: 5px;
+    min-width: 80px;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.fps-toggle-overlay {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #3b82f6;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fps-toggle-overlay:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+}
+
+.fps-toggle-overlay.active {
+    background: rgba(59, 130, 246, 0.4);
+    border-color: #3b82f6;
+    color: #60a5fa;
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 768px) {
+    .fps-main-display {
+        top: 10px;
+        right: 10px;
+        padding: 2px;
+    }
+    
+    .fps-display-main {
+        font-size: 14px;
+        padding: 6px 10px;
+        min-width: 70px;
+    }
 }
 
 /* Radius Controls Styles */
@@ -294,12 +345,13 @@ canvas {
     right: -400px;
     width: 400px;
     height: 100vh;
-    background: #ffffff;
-    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
+    background: #0f172a;
+    box-shadow: -2px 0 20px rgba(0, 0, 0, 0.5);
+    z-index: 1100;
     transition: right 0.3s ease-in-out;
     display: flex;
     flex-direction: column;
+    border-left: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .settings-sidebar.open {
@@ -307,13 +359,14 @@ canvas {
 }
 
 .sidebar-header {
-    background: #673AB7;
-    color: white;
+    background: #1e293b;
+    color: #e2e8f0;
     padding: 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .sidebar-header h2 {
@@ -521,42 +574,49 @@ canvas {
 }
 
 .menu-footer {
-    background: #f8f9fa;
+    background: #0080ff;
     padding: 15px 20px;
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    border-top: 1px solid #e9ecef;
+    border-top: 1px solid #0080ff;
     flex-shrink: 0;
 }
 
 .menu-button {
     padding: 10px 20px;
-    border: none;
+    border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 6px;
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: background-color 0.2s, border-color 0.2s;
     flex: 1;
+    background: rgba(59, 130, 246, 0.1);
+    color: #e2e8f0;
 }
 
 .menu-button.primary {
-    background: #673AB7;
+    background: #3b82f6;
     color: white;
+    border-color: #3b82f6;
 }
 
 .menu-button.primary:hover {
-    background: #5E35B1;
+    background: #2563eb;
+    border-color: #2563eb;
 }
 
 .menu-button.secondary {
-    background: #6c757d;
-    color: white;
+    background: rgba(71, 85, 105, 0.6);
+    color: #cbd5e1;
+    border-color: rgba(71, 85, 105, 0.4);
 }
 
 .menu-button.secondary:hover {
-    background: #5a6268;
+    background: rgba(71, 85, 105, 0.8);
+    border-color: rgba(71, 85, 105, 0.6);
+    color: #e2e8f0;
 }
 
 /* File Info Styles */
@@ -700,6 +760,7 @@ canvas {
     transition: all 0.3s ease;
     backdrop-filter: blur(5px);
     font-family: Arial, sans-serif;
+    pointer-events: auto; /* Ensure panel can capture events */
 }
 
 .edge-info-panel.collapsed .edge-info-content {
@@ -801,6 +862,7 @@ canvas {
     transition: all 0.3s ease;
     backdrop-filter: blur(5px);
     font-family: Arial, sans-serif;
+    pointer-events: auto; /* Ensure panel can capture events */
 }
 
 .multiple-edge-info-panel.collapsed .multiple-edge-info-content {
@@ -1070,4 +1132,733 @@ body.sidebar-open {
 /* Hide original controls when menu is available */
 .controls .parameterSlider {
     display: none;
+}
+
+/* Menu Toggle Button */
+.menu-toggle {
+    background: #673AB7;
+    color: white;
+    padding: 0;
+    border: none;
+    border-radius: 50% 0 0 50%;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    position: fixed;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1001;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.menu-toggle:hover {
+    background: #5E35B1;
+    right: 5px;
+}
+
+.menu-toggle.open {
+    right: 400px;
+    border-radius: 0 50% 50% 0;
+    transform: translateY(-50%) rotate(180deg);
+}
+
+.menu-toggle.open:hover {
+    right: 395px;
+}
+
+/* Settings Sidebar */
+.settings-sidebar {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: #ffffff;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: right 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto; /* Ensure menu can capture events */
+}
+
+.settings-sidebar.open {
+    right: 0;
+}
+
+/* Hide FPS counter when sidebar is open - using body class approach */
+body:has(.settings-sidebar.open) .fps-main-display {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.sidebar-header {
+    background: #673AB7;
+    color: white;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-header h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.sidebar-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.sidebar-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.sidebar-content {
+    flex: 1;
+    padding: 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #673AB7 #f1f1f1;
+}
+
+.sidebar-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+    background: #673AB7;
+    border-radius: 4px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+    background: #5E35B1;
+}
+
+/* Menu Sections */
+.menu-section {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    margin-bottom: 2px;
+}
+
+.section-header {
+    background: #673AB7;
+    color: white;
+    margin: 0;
+    padding: 15px 20px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background-color 0.3s;
+}
+
+.section-header:hover {
+    background: #5E35B1;
+}
+
+.section-header::after {
+    content: '▼';
+    transition: transform 0.3s;
+}
+
+.section-header.collapsed::after {
+    transform: rotate(-90deg);
+}
+
+.section-content {
+    padding: 18px;
+    max-height: 500px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+.section-content.collapsed {
+    max-height: 0;
+    padding: 0 18px;
+}
+
+/* Control Groups */
+.control-group {
+    margin-bottom: 18px;
+    clear: both;
+}
+
+.control-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #333;
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+/* Menu Buttons */
+.menu-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.menu-button.primary {
+    background: #673AB7;
+    color: white;
+}
+
+.menu-button.primary:hover {
+    background: #5E35B1;
+}
+
+.menu-button.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.menu-button.secondary:hover {
+    background: #5a6268;
+}
+
+/* Slider Controls */
+.slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #ddd;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #673AB7;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.control-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #673AB7;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.slider-value {
+    min-width: 50px;
+    text-align: right;
+    font-weight: 600;
+    color: #ffffff;
+    background: #f8f9fa;
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+}
+
+/* File Input Wrapper for Menu */
+.menu-section .file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: block;
+    width: 100%;
+}
+
+.menu-section .file-input-wrapper input[type=file] {
+    position: absolute;
+    left: -9999px;
+}
+
+.menu-section .file-input-wrapper label {
+    display: block;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+/* FPS Display in Menu */
+.menu-section .fps-display {
+    color: #673AB7;
+    font-size: 12px;
+    font-weight: bold;
+    background: #f8f9fa;
+    padding: 8px 12px;
+    border-radius: 3px;
+    min-width: 60px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+}
+
+/* Instructions Panel Styles */
+.instructions-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    max-width: 500px;
+    min-width: 300px;
+    max-height: 70vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto; /* Ensure panel can capture events */
+}
+
+.instructions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.8);
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.instructions-header:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+.instructions-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #3b82f6;
+}
+
+.instructions-toggle {
+    background: none;
+    border: none;
+    color: #3b82f6;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.instructions-content {
+    padding: 16px;
+    font-size: 15px;
+    line-height: 1.5;
+    overflow-y: auto;
+    flex: 1;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.1);
+}
+
+.instructions-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.instructions-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.instructions-content::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.6);
+    border-radius: 4px;
+}
+
+.instructions-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.8);
+}
+
+.instructions-content h3 {
+    margin: 0 0 12px 0;
+    color: #3b82f6;
+    font-size: 18px;
+}
+
+.instructions-content h4 {
+    margin: 16px 0 8px 0;
+    color: #60a5fa;
+    font-size: 16px;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    padding-bottom: 4px;
+}
+
+.instructions-content p {
+    margin: 8px 0;
+    color: #e0e0e0;
+    font-size: 15px;
+}
+
+.instructions-content ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.instructions-content li {
+    margin: 4px 0;
+    color: #e0e0e0;
+    font-size: 14px;
+}
+
+.info-section {
+    margin-bottom: 16px;
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 8px 0;
+}
+
+.control-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 13px;
+    color: #e0e0e0;
+}
+
+.instructions-content code {
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Link styling for instructions panel */
+.instructions-content a {
+    color: #3b82f6;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s ease;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.instructions-content a:hover {
+    color: #60a5fa;
+    border-bottom-color: rgba(96, 165, 250, 0.6);
+}
+
+.instructions-content a:visited {
+    color: #3b82f6;
+}
+
+.instructions-content a:visited:hover {
+    color: #3b82f6;
+}
+
+/* Responsive adjustments for instructions panel */
+@media (max-width: 768px) {
+    .instructions-panel {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        max-width: none;
+        min-width: auto;
+        max-height: 80vh;
+    }
+    
+    .controls-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .instructions-content {
+        padding: 12px;
+        font-size: 14px;
+    }
+}
+
+/* Color scheme overrides to ensure consistent dark theme with blue accents */
+.menu-section {
+    background: #1e293b !important;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+.section-header {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.1) !important;
+}
+
+.section-header:hover {
+    background: #334155 !important;
+    color: #3b82f6 !important;
+}
+
+.section-content {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+.control-label {
+    color: #cbd5e1 !important;
+}
+
+.slider-value {
+    color: #ffffff !important;
+    background: rgba(59, 130, 246, 0.1) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+.control-slider {
+    accent-color: #3b82f6 !important;
+}
+
+/* Edge info panel colors */
+.edge-info-panel {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border: 1px solid rgba(59, 130, 246, 0.3) !important;
+}
+
+.edge-info-header {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    border-bottom: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+.edge-info-title {
+    color: #3b82f6 !important;
+}
+
+.edge-info-toggle {
+    color: #3b82f6 !important;
+}
+
+.edge-info-content {
+    background: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+
+/* Menu toggle button colors */
+.menu-toggle {
+    background: rgba(59, 130, 246, 0.9) !important;
+    color: white !important;
+    border: 1px solid rgba(59, 130, 246, 0.4) !important;
+}
+
+.menu-toggle:hover {
+    background: rgba(37, 99, 235, 0.9) !important;
+    border-color: rgba(37, 99, 235, 0.6) !important;
+}
+
+/* Fix white borders in control elements */
+.file-info, .log-wrapper {
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    background: rgba(15, 23, 42, 0.5) !important;
+}
+
+.log-container {
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+    background: #0f172a !important;
+}
+
+/* Target specific elements with white borders */
+.info-item, .file-input-wrapper, .control-group, .log-display {
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Remove borders from form elements */
+input[type="range"], input[type="file"] {
+    border: none !important;
+}
+
+/* Fix any remaining light/white borders */
+.menu-section .fps-display {
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Comprehensive white border fixes */
+.settings-sidebar * {
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.settings-sidebar .menu-section,
+.settings-sidebar .section-content,
+.settings-sidebar .control-group,
+.settings-sidebar .slider-container,
+.settings-sidebar .file-input-wrapper {
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Remove borders from elements that shouldn't have them */
+.settings-sidebar .control-label,
+.settings-sidebar .slider-value {
+    border: none !important;
+}
+
+/* Aggressive white border removal */
+.settings-sidebar input,
+.settings-sidebar button,
+.settings-sidebar label,
+.settings-sidebar div,
+.settings-sidebar span {
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Specifically target problematic elements */
+.slider-container, .control-group, .file-input-wrapper label {
+    border: none !important;
+    outline: none !important;
+}
+
+/* Override any default input styling */
+input[type="range"]:focus,
+input[type="file"]:focus,
+button:focus {
+    outline: none !important;
+    border-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+/* Make sure no element has white/light borders */
+.settings-sidebar [style*="border"] {
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Override all problematic light colors found in original styles */
+.settings-sidebar .menu-section,
+.settings-sidebar .section-content {
+    background: #0f172a !important;
+}
+
+.settings-sidebar {
+    background: #0f172a !important;
+}
+
+.settings-sidebar .sidebar-header {
+    background: #1e293b !important;
+}
+
+.settings-sidebar .section-header {
+    background: #1e293b !important;
+}
+
+/* Fix specific elements with light backgrounds/borders */
+.settings-sidebar .info-item,
+.settings-sidebar .log-wrapper,
+.settings-sidebar .file-info {
+    background: rgba(15, 23, 42, 0.5) !important;
+    border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Override any #ddd, #e9ecef, #f8f9fa backgrounds or borders */
+*[style*="#ddd"], *[style*="#e9ecef"], *[style*="#f8f9fa"] {
+    background: #0f172a !important;
+    border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Ensure menu buttons have proper backgrounds */
+.settings-sidebar .menu-button.primary {
+    background: #3b82f6 !important;
+    color: white !important;
+}
+
+.settings-sidebar .menu-button.secondary {
+    background: rgba(71, 85, 105, 0.6) !important;
+    color: #cbd5e1 !important;
+}
+
+/* Remove animation from collapsible menu buttons */
+.section-header::after {
+    transition: none !important;
+    transform: none !important;
+}
+
+.section-header.collapsed::after {
+    transition: none !important;
+    transform: rotate(-90deg) !important;
+}
+
+/* Remove all hover transform animations */
+.settings-sidebar *:hover {
+    transform: none !important;
+}
+
+/* Specifically override menu button hover transforms */
+.menu-button:hover,
+.menu-button.primary:hover,
+.menu-button.secondary:hover {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove all button transitions */
+.menu-button, .fps-toggle-overlay, .menu-toggle {
+    transition: background-color 0.2s, border-color 0.2s !important;
+}
+
+/* Fix slider styling to remove white elements */
+input[type="range"] {
+    background: transparent !important;
+    border: none !important;
+}
+
+input[type="range"]::-webkit-slider-track {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border: none !important;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    background: #3b82f6 !important;
+    border: none !important;
+}
+
+input[type="range"]::-moz-range-track {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border: none !important;
+}
+
+input[type="range"]::-moz-range-thumb {
+    background: #3b82f6 !important;
+    border: none !important;
 }

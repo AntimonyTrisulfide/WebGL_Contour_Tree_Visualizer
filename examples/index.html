@@ -31,47 +31,128 @@
     <script src="../src/debug.js"></script>
 </head>
 <body>
-    <div class="controls">
-        <div class="file-input-wrapper">
-            <input type="file" id="universalInput" accept=".json,.xml,.csv,.off">
-            <label for="universalInput" class="file-input-label">Load Tree Data (Any Format)</label>
-        </div>
-        <div class="file-input-wrapper">
-            <input type="file" id="fileInput" accept=".off" style="display: none;">
-            <label for="fileInput" class="file-input-label" style="display: none;">Load OFF File (Hidden)</label>
-        </div>
-        <button id="generateSample" class="file-input-label">Generate Sample Tree</button>
-        <button id="clearSelection" class="reset-button">Clear Selection</button>
-        <button id="toggleSpacing" class="reset-button">Toggle Spacing (P)</button>
-        
-        <div class="radius-controls">
-            <div class="slider-control">
-                <label for="sphereRadiusSlider">Sphere Radius: <span id="sphereRadiusValue">0.1</span></label>
-                <input type="range" id="sphereRadiusSlider" min="0.01" max="0.5" step="0.01" value="0.1">
-            </div>
-            <div class="slider-control">
-                <label for="pipeRadiusSlider">Pipe Radius: <span id="pipeRadiusValue">0.02</span></label>
-                <input type="range" id="pipeRadiusSlider" min="0.001" max="0.1" step="0.001" value="0.02">
-            </div>
+    <!-- Menu Toggle Button -->
+    <button class="menu-toggle" id="menuToggle">☰</button>
+
+    <!-- Collapsible Settings Sidebar -->
+    <div class="settings-sidebar" id="settingsSidebar">
+        <div class="sidebar-header">
+            <h2>Controls</h2>
+            <button class="sidebar-close" id="sidebarClose">×</button>
         </div>
         
-        <div class="fps-controls">
-            <button id="fpsToggleButton" class="fps-button">Start FPS Counter</button>
-            <div id="fpsDisplay" class="fps-display">FPS: --</div>
+        <div class="sidebar-content">
+            <!-- File Operations Section -->
+            <div class="menu-section">
+                <div class="section-header" id="fileOpsHeader">File Operations</div>
+                <div class="section-content" id="fileOpsContent">
+                    <div class="control-group">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="fileInput" accept=".off" style="display: none;">
+                            <label for="fileInput" class="menu-button primary">Load OFF File</label>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <button id="generateSample" class="menu-button primary" style="width: 100%;">Load Sample Tree (sample.off)</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Controls Section - Removed clear selection button -->
+            <!-- <div class="menu-section">
+                <div class="section-header" id="viewControlsHeader">View Controls</div>
+                <div class="section-content" id="viewControlsContent">
+                    <div class="control-group">
+                        <button id="clearSelection" class="menu-button secondary" style="width: 100%;">Clear Selection</button>
+                    </div>
+                </div>
+            </div> -->
+
+            <!-- Rendering Settings Section -->
+            <div class="menu-section">
+                <div class="section-header" id="renderingHeader">Rendering Settings</div>
+                <div class="section-content" id="renderingContent">
+                    <div class="control-group">
+                        <label class="control-label">Sphere Radius</label>
+                        <div class="slider-container">
+                            <input type="range" id="sphereRadiusSlider" class="control-slider" min="0.01" max="0.5" step="0.01" value="0.3">
+                            <span class="slider-value" id="sphereRadiusValue">0.300</span>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label">Pipe Radius</label>
+                        <div class="slider-container">
+                            <input type="range" id="pipeRadiusSlider" class="control-slider" min="0.001" max="0.1" step="0.001" value="0.05">
+                            <span class="slider-value" id="pipeRadiusValue">0.050</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FPS Controls moved to overlay button -->
+            <!-- <div class="menu-section">
+                <div class="section-header" id="fpsHeader">Performance</div>
+                <div class="section-content" id="fpsContent">
+                    <div class="control-group">
+                        <button id="fpsToggleButton" class="menu-button secondary" style="width: 100%;">Start FPS Counter</button>
+                    </div>
+                </div>
+            </div> -->
         </div>
     </div>
 
-    <div class="instructions">
-        <!-- <h3>Universal Parser Example</h3>
-        <p>This example demonstrates the universal parser system that automatically detects file types and uses the appropriate parser.</p>
-        <ul>
-            <li><strong>Supported Formats:</strong> JSON, XML, CSV, OFF</li>
-            <li><strong>Auto-Detection:</strong> File type detected by extension</li>
-            <li><strong>Extensible:</strong> Easy to add new parsers</li>
-            <li><strong>Sample Generator:</strong> Generate a sample tree programmatically</li>
-        </ul>
-        <p><strong>Controls:</strong> Use mouse to rotate, click to select edges, P to toggle spacing</p> -->
-        <h3>Test Script</h3>
+    <!-- Instructions Panel -->
+    <div id="instructionsPanel" class="instructions-panel collapsed">
+        <div class="instructions-header" id="instructionsHeader">
+            <span class="instructions-title">Contour Tree Visualizer - Instructions & Keybinds</span>
+            <button class="instructions-toggle" id="instructionsToggle">▼</button>
+        </div>
+        <div class="instructions-content" id="instructionsContent">
+            <h3>WebGL Contour Tree Visualizer</h3>
+            <p>Click the <strong>☰ menu button</strong> on the right to access all controls. This visualizer automatically loads the sample contour tree from <code>sample.off</code> file.</p>
+            
+            <div class="info-section">
+                <h4>Features</h4>
+                <ul>
+                    <li><strong>Auto-Load:</strong> Sample tree loads automatically on page start</li>
+                    <li><strong>Menu Access:</strong> All controls organized in collapsible sections</li>
+                    <li><strong>Supported Format:</strong> OFF files only</li>
+                    <li><strong>Interactive Controls:</strong> File loading, rendering settings, view controls</li>
+                </ul>
+            </div>
+
+            <div class="info-section">
+                <h4>Keyboard Controls</h4>
+                <div class="controls-grid">
+                    <div class="control-item"><strong>A/D:</strong> Pan left/right</div>
+                    <div class="control-item"><strong>W/S:</strong> Zoom in/out</div>
+                    <div class="control-item"><strong>T/G:</strong> Pan up/down</div>
+                    <div class="control-item"><strong>P:</strong> Toggle spacing</div>
+                    <div class="control-item"><strong>M:</strong> Toggle menu</div>
+                    <div class="control-item"><strong>R:</strong> Reset camera</div>
+                    <div class="control-item"><strong>X:</strong> Reset position</div>
+                    <div class="control-item"><strong>Ctrl:</strong> Select multiple</div>
+                </div>
+            </div>
+
+            <div class="info-section">
+                <h4>Mouse Controls</h4>
+                <p>Use mouse to rotate view, click to select edges, hold ctrl to select multiple edges</p>
+            </div>
+
+            <!-- paragraph section describiing the project -->
+             <div class="info-section">
+                <h4>About the Project</h4>
+                <p>This Contour Tree Visualizer is a WebGL-based tool for visualizing contour trees from OFF files. It features an intuitive interface with collapsible menus, keyboard shortcuts, and interactive controls for loading files and adjusting rendering settings. The visualizer is designed to provide a seamless experience for exploring complex tree structures in 3D.</p>
+                <p>I made this project as a part of my 8 week long internship at Visualization and Graphics Lab, Computer Science and Automation Department, IISc Bengaluru under the guidance of Prof. Vijay Natarajan</p>    
+             </div>
+
+            <!-- Add link to my portfolio website and my name -->
+            <div class="info-section">
+                <h4>About the Developer</h4>
+                <p>Developed by <a href="https://antimonytrisulfide.github.io" target="_blank" rel="noopener noreferrer">Manav Marmat</a></p>
+            </div>
+        </div>
     </div>
 
     <div id="edgeInfoPanel" class="edge-info-panel collapsed">
@@ -107,6 +188,12 @@
         </div>
     </div>
 
+    <!-- FPS Display in Main View with adjacent control button -->
+    <div id="fpsMainDisplay" class="fps-main-display">
+        <div id="fpsDisplay" class="fps-display-main">FPS: --</div>
+        <button id="fpsToggleButtonOverlay" class="fps-toggle-overlay">⏵</button>
+    </div>
+
     <canvas id="canvas"></canvas>
 
     <script>
@@ -120,61 +207,188 @@
             updateViewport();
         }
 
-        // Sample Tree Generator
+        // Menu System Functions
+        function initializeMenuSystem() {
+            const menuToggle = document.getElementById('menuToggle');
+            const settingsSidebar = document.getElementById('settingsSidebar');
+            const sidebarClose = document.getElementById('sidebarClose');
+            
+            // Toggle menu open/close
+            function toggleMenu() {
+                const isOpen = settingsSidebar.classList.contains('open');
+                if (isOpen) {
+                    settingsSidebar.classList.remove('open');
+                    menuToggle.classList.remove('open');
+                } else {
+                    settingsSidebar.classList.add('open');
+                    menuToggle.classList.add('open');
+                }
+            }
+            
+            // Event listeners for menu toggle
+            if (menuToggle) {
+                menuToggle.addEventListener('click', toggleMenu);
+            }
+            if (sidebarClose) {
+                sidebarClose.addEventListener('click', toggleMenu);
+            }
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!settingsSidebar.contains(event.target) && 
+                    !menuToggle.contains(event.target) && 
+                    settingsSidebar.classList.contains('open')) {
+                    toggleMenu();
+                }
+            });
+            
+            // Prevent menu interactions from affecting camera controls
+            if (settingsSidebar) {
+                settingsSidebar.addEventListener('wheel', function(event) {
+                    event.stopPropagation();
+                }, { passive: false });
+                
+                settingsSidebar.addEventListener('mousedown', function(event) {
+                    event.stopPropagation();
+                });
+                
+                settingsSidebar.addEventListener('mousemove', function(event) {
+                    event.stopPropagation();
+                });
+                
+                settingsSidebar.addEventListener('mouseup', function(event) {
+                    event.stopPropagation();
+                });
+            }
+            
+            // Keyboard shortcut to toggle menu (M key)
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'm' || event.key === 'M') {
+                    // Only toggle if not typing in an input field
+                    if (!event.target.matches('input, textarea, select')) {
+                        event.preventDefault();
+                        toggleMenu();
+                    }
+                }
+            });
+            
+            // Initialize collapsible sections
+            initializeCollapsibleSections();
+            
+            // Initialize instructions panel
+            initializeInstructionsPanel();
+        }
+        
+        function initializeCollapsibleSections() {
+            const sectionHeaders = document.querySelectorAll('.section-header');
+            
+            sectionHeaders.forEach(header => {
+                const contentId = header.id.replace('Header', 'Content');
+                const content = document.getElementById(contentId);
+                
+                if (content) {
+                    // Start with all sections open
+                    content.classList.remove('collapsed');
+                    header.classList.remove('collapsed');
+                    
+                    header.addEventListener('click', function() {
+                        const isCollapsed = content.classList.contains('collapsed');
+                        
+                        if (isCollapsed) {
+                            content.classList.remove('collapsed');
+                            header.classList.remove('collapsed');
+                        } else {
+                            content.classList.add('collapsed');
+                            header.classList.add('collapsed');
+                        }
+                    });
+                }
+            });
+        }
+
+        function initializeInstructionsPanel() {
+            const instructionsHeader = document.getElementById('instructionsHeader');
+            const instructionsContent = document.getElementById('instructionsContent');
+            const instructionsToggle = document.getElementById('instructionsToggle');
+            const instructionsPanel = document.getElementById('instructionsPanel');
+            
+            if (instructionsHeader && instructionsContent && instructionsToggle) {
+                // Start collapsed
+                instructionsContent.style.display = 'none';
+                instructionsPanel.classList.add('collapsed');
+                instructionsToggle.textContent = '▶';
+                
+                instructionsHeader.addEventListener('click', function() {
+                    const isCollapsed = instructionsContent.style.display === 'none';
+                    
+                    if (isCollapsed) {
+                        instructionsContent.style.display = 'block';
+                        instructionsPanel.classList.remove('collapsed');
+                        instructionsToggle.textContent = '▼';
+                    } else {
+                        instructionsContent.style.display = 'none';
+                        instructionsPanel.classList.add('collapsed');
+                        instructionsToggle.textContent = '▶';
+                    }
+                });
+            }
+        }
+
+        // Sample Tree Generator - Load from sample.off file
         function generateSampleTree() {
-            console.log('📝 Generating sample tree data...');
+            console.log('📝 Generating sample tree data from sample.off...');
             
-            // Create a simple tree structure
-            const vertices = [
-                [0, 0, 0],     // 0 - Root (minimum)
-                [-1, 1, 0],    // 1 - Left saddle
-                [1, 1, 0],     // 2 - Right saddle
-                [-2, 2, 0],    // 3 - Left maximum
-                [0, 2, 0],     // 4 - Center maximum
-                [2, 2, 0],     // 5 - Right maximum
-                [0, 3, 0]      // 6 - Top maximum
-            ];
-            
-            const edges = [
-                [0, 1],  // Root to left saddle
-                [0, 2],  // Root to right saddle
-                [1, 3],  // Left saddle to left maximum
-                [1, 4],  // Left saddle to center maximum
-                [2, 4],  // Right saddle to center maximum
-                [2, 5],  // Right saddle to right maximum
-                [4, 6]   // Center maximum to top maximum
-            ];
-            
-            const vertexTypes = [
-                NODE_TYPES.MINIMUM,  // 0
-                NODE_TYPES.SADDLE,   // 1
-                NODE_TYPES.SADDLE,   // 2
-                NODE_TYPES.MAXIMUM,  // 3
-                NODE_TYPES.MAXIMUM,  // 4
-                NODE_TYPES.MAXIMUM,  // 5
-                NODE_TYPES.MAXIMUM   // 6
-            ];
-            
-            const vertexValues = [0.0, 0.5, 0.5, 1.0, 1.0, 1.0, 1.5];
-            
-            console.log('✅ Sample Generator: Generated sample tree with', vertices.length, 'vertices');
-            return {
-                vertices,
-                edges,
-                vertexTypes,
-                vertexValues
-            };
+            // Load the sample.off file automatically
+            loadSampleOffFile();
+        }
+
+        // Function to load sample.off file automatically
+        async function loadSampleOffFile() {
+            try {
+                console.log('🔄 Loading sample.off file...');
+                
+                // Fetch the sample.off file
+                const response = await fetch('../demo/sample.off');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const offData = await response.text();
+                console.log('✅ Successfully loaded sample.off file');
+                
+                // Parse the OFF data using the universal parser
+                const treeData = parseFile('sample.off', offData);
+                console.log('✅ Successfully parsed sample.off data:', treeData);
+                
+                // Visualize the loaded data
+                visualizeTreeData(treeData, 'Sample OFF File (sample.off)');
+                
+            } catch (error) {
+                console.error('❌ Error loading sample.off file:', error);
+                alert(`Error loading sample.off file: ${error.message}`);
+            }
+        }
+
+        // Auto-load sample.off file when page loads
+        async function autoLoadSampleOnStart() {
+            try {
+                console.log('🚀 Auto-loading sample.off file on page start...');
+                await loadSampleOffFile();
+            } catch (error) {
+                console.error('❌ Failed to auto-load sample.off file:', error);
+                // Don't show alert for auto-load failure, just log it
+            }
         }
 
 
 
         // Visualizer configuration
         function getVisualizerConfig() {
-            // Get current slider values or use defaults
+            // Get current slider values or use defaults from HTML
             const currentSphereRadius = document.getElementById('sphereRadiusSlider') ? 
-                parseFloat(document.getElementById('sphereRadiusSlider').value) : 0.1;
+                parseFloat(document.getElementById('sphereRadiusSlider').value) : 0.3;
             const currentPipeRadius = document.getElementById('pipeRadiusSlider') ? 
-                parseFloat(document.getElementById('pipeRadiusSlider').value) : 0.02;
+                parseFloat(document.getElementById('pipeRadiusSlider').value) : 0.05;
             
             return {
                 lightConfig: {
@@ -306,20 +520,102 @@
 
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize menu system first
+            initializeMenuSystem();
+            
+            // Add event handlers to prevent camera movement when interacting with menu elements
+            function stopEventPropagation(event) {
+                event.stopPropagation();
+            }
+            
+            // Get menu elements and add event listeners to prevent camera control interference
+            const menuElements = [
+                'settingsSidebar',
+                'menuToggle', 
+                'instructionsPanel',
+                'edgeInfoPanel',
+                'multipleEdgeInfoPanel',
+                'fpsMainDisplay'
+            ];
+            
+            menuElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.addEventListener('wheel', stopEventPropagation, { passive: false });
+                    element.addEventListener('mousedown', stopEventPropagation);
+                    element.addEventListener('mousemove', stopEventPropagation);
+                    element.addEventListener('mouseup', stopEventPropagation);
+                }
+            });
+            
+            // Function to apply event protection to dynamically created elements
+            window.applyEventProtection = function(elementId) {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    element.addEventListener('wheel', stopEventPropagation, { passive: false });
+                    element.addEventListener('mousedown', stopEventPropagation);
+                    element.addEventListener('mousemove', stopEventPropagation);
+                    element.addEventListener('mouseup', stopEventPropagation);
+                    console.log('Event protection applied to', elementId);
+                }
+            };
+            
+            // Set up a MutationObserver to watch for dynamically created edge info panels
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList') {
+                        mutation.addedNodes.forEach(function(node) {
+                            if (node.nodeType === Node.ELEMENT_NODE) {
+                                // Check for multiple edge info panel
+                                if (node.id === 'multipleEdgeInfoPanel') {
+                                    window.applyEventProtection('multipleEdgeInfoPanel');
+                                }
+                                // Also check children of added nodes
+                                const multipleEdgePanel = node.querySelector('#multipleEdgeInfoPanel');
+                                if (multipleEdgePanel) {
+                                    window.applyEventProtection('multipleEdgeInfoPanel');
+                                }
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Start observing
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+            
             // Initialize slider values and display
             const sphereSlider = document.getElementById('sphereRadiusSlider');
             const pipeSlider = document.getElementById('pipeRadiusSlider');
             const sphereValueDisplay = document.getElementById('sphereRadiusValue');
             const pipeValueDisplay = document.getElementById('pipeRadiusValue');
             
-            // Set initial values from global variables or defaults
-            const initialSphereRadius = (typeof window.sphereRadius !== 'undefined') ? window.sphereRadius : 0.1;
-            const initialPipeRadius = (typeof window.pipeRadius !== 'undefined') ? window.pipeRadius : 0.02;
+            // Initialize configuration from HTML slider values
+            if (window.GlobalConfig) {
+                const config = window.GlobalConfig.initializeFromHTML();
+                console.log('✅ Configuration initialized from HTML:', config);
+            }
             
-            sphereSlider.value = initialSphereRadius;
-            pipeSlider.value = initialPipeRadius;
+            // Get the current values (now properly initialized)
+            const initialSphereRadius = parseFloat(sphereSlider.value);
+            const initialPipeRadius = parseFloat(pipeSlider.value);
+            
+            // Update displays to show current values
             sphereValueDisplay.textContent = initialSphereRadius.toFixed(3);
             pipeValueDisplay.textContent = initialPipeRadius.toFixed(3);
+            
+            console.log('🎛️ Initial slider values:', {
+                sphere: initialSphereRadius,
+                pipe: initialPipeRadius
+            });
+
+            // Auto-load sample.off file after a short delay to ensure all systems are initialized
+            setTimeout(() => {
+                autoLoadSampleOnStart();
+            }, 500);
             
             // Set up universal file input
             setupUniversalFileInput('universalInput', 
@@ -334,49 +630,68 @@
                 }
             );
 
-            // Generate sample button
+            // Generate sample button - now loads from sample.off file
             document.getElementById('generateSample').addEventListener('click', function() {
-                const treeData = generateSampleTree();
-                visualizeTreeData(treeData, 'Sample Generator');
+                generateSampleTree(); // This now loads from sample.off file
             });
 
-            // Clear selection button
-            document.getElementById('clearSelection').addEventListener('click', function() {
-                if (window.selectionManager) {
-                    window.selectionManager.clearSelection();
-                } else if (typeof clearEdgeSelection === 'function') {
-                    clearEdgeSelection();
-                }
-            });
+            // Clear selection button - removed from menu
 
-            // Toggle spacing button
-            document.getElementById('toggleSpacing').addEventListener('click', function() {
-                if (typeof applySpacing !== 'undefined') {
-                    applySpacing = !applySpacing;
-                    console.log('🔄 Spacing toggled to:', applySpacing);
+            // FPS toggle button overlay handler
+            const fpsToggleOverlay = document.getElementById('fpsToggleButtonOverlay');
+            if (fpsToggleOverlay) {
+                let fpsEnabled = false;
+                fpsToggleOverlay.addEventListener('click', function() {
+                    fpsEnabled = !fpsEnabled;
                     
-                    // Re-visualize with current data if available
-                    if (window.currentTreeData) {
-                        visualizeTreeData(window.currentTreeData, 'Current (Spacing Toggled)');
+                    if (fpsEnabled) {
+                        // Start FPS counter
+                        this.textContent = '⏸';
+                        this.classList.add('active');
+                        
+                        // Start continuous rendering for FPS
+                        if (typeof startContinuousRendering === 'function') {
+                            startContinuousRendering();
+                        }
                     } else {
-                        console.log('⚠️ No current tree data to re-visualize');
+                        // Stop FPS counter
+                        this.textContent = '⏵';
+                        this.classList.remove('active');
+                        
+                        // Stop continuous rendering
+                        if (typeof stopContinuousRendering === 'function') {
+                            stopContinuousRendering();
+                        }
+                        
+                        // Reset FPS display
+                        const fpsElement = document.getElementById('fpsDisplay');
+                        if (fpsElement) {
+                            fpsElement.textContent = 'FPS: --';
+                        }
                     }
-                } else {
-                    console.log('❌ Spacing toggle not available');
-                }
-            });
+                });
+            }
 
-            // Direct update function for sliders
+
+
+            // Direct update function for sliders using configuration system
             function updateRadius(radiusType, newValue) {
                 console.log(`🔄 ${radiusType} radius changing to:`, newValue);
                 
-                // Update global variables immediately
-                if (radiusType === 'Sphere') {
-                    window.sphereRadius = newValue;
-                    sphereRadius = newValue;
-                } else if (radiusType === 'Pipe') {
-                    window.pipeRadius = newValue;
-                    pipeRadius = newValue;
+                // Update using the configuration system
+                if (window.GlobalConfig) {
+                    if (radiusType === 'Sphere') {
+                        window.GlobalConfig.updateRadius(newValue, undefined);
+                    } else if (radiusType === 'Pipe') {
+                        window.GlobalConfig.updateRadius(undefined, newValue);
+                    }
+                } else {
+                    // Fallback to direct assignment if config system not available
+                    if (radiusType === 'Sphere') {
+                        window.sphereRadius = newValue;
+                    } else if (radiusType === 'Pipe') {
+                        window.pipeRadius = newValue;
+                    }
                 }
                 
                 // If tree data exists, reinitialize the graph
@@ -417,10 +732,11 @@
                 const newRadius = parseFloat(this.value);
                 document.getElementById('sphereRadiusValue').textContent = newRadius.toFixed(3);
                 
-                // Update global sphere radius variables
-                window.sphereRadius = newRadius;
-                if (typeof sphereRadius !== 'undefined') {
-                    sphereRadius = newRadius;
+                // Update using configuration system
+                if (window.GlobalConfig) {
+                    window.GlobalConfig.updateRadius(newRadius, undefined);
+                } else {
+                    window.sphereRadius = newRadius;
                 }
                 
                 console.log('🔄 Sphere radius updated:', newRadius, 'Global:', window.sphereRadius);
@@ -432,10 +748,11 @@
                 const newRadius = parseFloat(this.value);
                 document.getElementById('pipeRadiusValue').textContent = newRadius.toFixed(3);
                 
-                // Update global pipe radius variables
-                window.pipeRadius = newRadius;
-                if (typeof pipeRadius !== 'undefined') {
-                    pipeRadius = newRadius;
+                // Update using configuration system
+                if (window.GlobalConfig) {
+                    window.GlobalConfig.updateRadius(undefined, newRadius);
+                } else {
+                    window.pipeRadius = newRadius;
                 }
                 
                 console.log('🔄 Pipe radius updated:', newRadius, 'Global:', window.pipeRadius);

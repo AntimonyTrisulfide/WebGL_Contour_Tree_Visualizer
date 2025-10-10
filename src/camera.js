@@ -108,24 +108,89 @@ function handleCameraMovement() {
         moved = true;
     }
     
-    // A/D - Rotate around Y-axis (left/right)
-    if (window.keyState['a']) {
-        trackballRotation[1] -= 0.05; // Rotate left
-        moved = true;
-    }
+    // A/D - Pan left/right (default) or Rotate with Shift modifier
+    const horizontalPanSpeed = 0.2;
     if (window.keyState['d']) {
-        trackballRotation[1] += 0.05; // Rotate right
-        moved = true;
+        if (window.keyState['shift']) {
+            // Shift+A: Rotate left
+            trackballRotation[1] -= 0.05;
+            moved = true;
+        } else {
+            // A: Pan left (screen space)
+            // Get the current view's right vector (inverse of accumulated rotation)
+            const tempMatrix = mat4.create();
+            mat4.invert(tempMatrix, accumulatedRotation);
+            
+            // Extract right vector from the inverse rotation matrix (first column)
+            const rightX = tempMatrix[0];
+            const rightY = tempMatrix[4];
+            const rightZ = tempMatrix[8];
+            
+            // Pan left by moving opposite to right vector
+            cameraTarget[0] -= rightX * horizontalPanSpeed;
+            cameraTarget[1] -= rightY * horizontalPanSpeed;
+            cameraTarget[2] -= rightZ * horizontalPanSpeed;
+            moved = true;
+        }
+    }
+    if (window.keyState['a']) {
+        if (window.keyState['shift']) {
+            // Shift+D: Rotate right
+            trackballRotation[1] += 0.05;
+            moved = true;
+        } else {
+            // D: Pan right (screen space)
+            // Get the current view's right vector (inverse of accumulated rotation)
+            const tempMatrix = mat4.create();
+            mat4.invert(tempMatrix, accumulatedRotation);
+            
+            // Extract right vector from the inverse rotation matrix (first column)
+            const rightX = tempMatrix[0];
+            const rightY = tempMatrix[4];
+            const rightZ = tempMatrix[8];
+            
+            // Pan right by moving along right vector
+            cameraTarget[0] += rightX * horizontalPanSpeed;
+            cameraTarget[1] += rightY * horizontalPanSpeed;
+            cameraTarget[2] += rightZ * horizontalPanSpeed;
+            moved = true;
+        }
     }
     
-    // T/G - Pan camera target up/down (vertical movement)
-    const panSpeed = 0.1;
-    if (window.keyState['t']) {
-        cameraTarget[1] += panSpeed; // Move target up
+    // T/G - Pan camera target up/down (screen space vertical movement)
+    const verticalPanSpeed = 0.2;
+    if (window.keyState['g']) {
+        // T: Pan up (screen space)
+        // Get the current view's up vector (inverse of accumulated rotation)
+        const tempMatrix = mat4.create();
+        mat4.invert(tempMatrix, accumulatedRotation);
+        
+        // Extract up vector from the inverse rotation matrix (second column)
+        const upX = tempMatrix[1];
+        const upY = tempMatrix[5];
+        const upZ = tempMatrix[9];
+        
+        // Pan up by moving along up vector
+        cameraTarget[0] += upX * verticalPanSpeed;
+        cameraTarget[1] += upY * verticalPanSpeed;
+        cameraTarget[2] += upZ * verticalPanSpeed;
         moved = true;
     }
-    if (window.keyState['g']) {
-        cameraTarget[1] -= panSpeed; // Move target down
+    if (window.keyState['t']) {
+        // G: Pan down (screen space)
+        // Get the current view's up vector (inverse of accumulated rotation)
+        const tempMatrix = mat4.create();
+        mat4.invert(tempMatrix, accumulatedRotation);
+        
+        // Extract up vector from the inverse rotation matrix (second column)
+        const upX = tempMatrix[1];
+        const upY = tempMatrix[5];
+        const upZ = tempMatrix[9];
+        
+        // Pan down by moving opposite to up vector
+        cameraTarget[0] -= upX * verticalPanSpeed;
+        cameraTarget[1] -= upY * verticalPanSpeed;
+        cameraTarget[2] -= upZ * verticalPanSpeed;
         moved = true;
     }
     
@@ -194,14 +259,69 @@ function handleCameraMovement() {
     }
 }
 
+// Helper function to check if mouse is over menu elements
+function isMouseOverMenu(event) {
+    // Check if the event target is within the settings sidebar or menu toggle
+    const settingsSidebar = document.getElementById('settingsSidebar');
+    const menuToggle = document.getElementById('menuToggle');
+    const instructionsPanel = document.getElementById('instructionsPanel');
+    const edgeInfoPanel = document.getElementById('edgeInfoPanel');
+    const multipleEdgeInfoPanel = document.getElementById('multipleEdgeInfoPanel');
+    const fpsDisplay = document.getElementById('fpsMainDisplay');
+    
+    // Check if any of these elements contain the event target
+    const menuElements = [settingsSidebar, menuToggle, instructionsPanel, edgeInfoPanel, multipleEdgeInfoPanel, fpsDisplay].filter(Boolean);
+    
+    for (const element of menuElements) {
+        if (element && element.contains(event.target)) {
+            return true;
+        }
+    }
+    
+    // Also check if the menu is open and mouse is in the menu area
+    if (settingsSidebar && settingsSidebar.classList.contains('open')) {
+        const rect = settingsSidebar.getBoundingClientRect();
+        if (event.clientX >= rect.left) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Helper function to check if mouse is over canvas
+function isMouseOverCanvas(event) {
+    const canvas = document.getElementById('canvas');
+    if (!canvas) return false;
+    
+    const rect = canvas.getBoundingClientRect();
+    return (
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+    );
+}
+
 // Mouse handler functions for trackball camera
 function handleMouseDown(event) {
+    // Only handle mouse down if it's over the canvas and not over menu elements
+    if (!isMouseOverCanvas(event) || isMouseOverMenu(event)) {
+        return;
+    }
+    
     isDragging = true;
     lastMousePosition = [event.clientX, event.clientY];
 }
 
 function handleMouseMove(event) {
     if (!isDragging) return;
+    
+    // Stop dragging if mouse moves over menu elements
+    if (isMouseOverMenu(event)) {
+        isDragging = false;
+        return;
+    }
 
     const deltaX = event.clientX - lastMousePosition[0];
     const deltaY = event.clientY - lastMousePosition[1];
@@ -231,11 +351,16 @@ function handleMouseMove(event) {
     renderGraphWithFPS();
 }
 
-function handleMouseUp() {
+function handleMouseUp(event) {
     isDragging = false;
 }
 
 function handleMouseWheel(event) {
+    // Only handle wheel events if mouse is over canvas and not over menu elements
+    if (!isMouseOverCanvas(event) || isMouseOverMenu(event)) {
+        return;
+    }
+    
     event.preventDefault();
     const zoomSpeed = 0.1;
     const delta = event.deltaY > 0 ? 1 : -1;
@@ -250,7 +375,7 @@ function handleMouseWheel(event) {
 document.addEventListener('mousedown', handleMouseDown);
 document.addEventListener('mousemove', handleMouseMove);
 document.addEventListener('mouseup', handleMouseUp);
-document.addEventListener('wheel', handleMouseWheel);
+document.addEventListener('wheel', handleMouseWheel, { passive: false });
 
 // Reset function for accumulated rotation
 function resetTrackball() {

@@ -103,18 +103,18 @@ canvas.addEventListener('contextmenu', (e) => {
     e.preventDefault();
 });
 
-// Zoom with mouse wheel
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const zoomFactor = 1 + (e.deltaY * 0.001);
-    cameraDistance *= zoomFactor;
-    cameraDistance = Math.max(0.1, cameraDistance); // Prevent going through the target
-    
-    // Only render if uniforms are properly initialized
-    if (pipeUniforms && sphereUniforms) {
-        renderGraph();
-    }
-});
+// Zoom with mouse wheel - this will be handled by camera.js instead to avoid conflicts
+// canvas.addEventListener('wheel', (e) => {
+//     e.preventDefault();
+//     const zoomFactor = 1 + (e.deltaY * 0.001);
+//     cameraDistance *= zoomFactor;
+//     cameraDistance = Math.max(0.1, cameraDistance); // Prevent going through the target
+//     
+//     // Only render if uniforms are properly initialized
+//     if (pipeUniforms && sphereUniforms) {
+//         renderGraph();
+//     }
+// });
 
 window.addEventListener('resize', () => {
     // Supersampling for better anti-aliasing - render at device pixel ratio
@@ -149,6 +149,11 @@ window.dispatchEvent(new Event('resize'));
 window.keyState = {}; // Make it global so camera.js can access it
 const moveSpeed = 0.1;
 
+// Initialize keyState object
+if (!window.keyState) {
+    window.keyState = {};
+}
+
 window.addEventListener('keydown', (e) => {
     window.keyState[e.key.toLowerCase()] = true;
     handleCameraMovement();
@@ -161,12 +166,18 @@ window.addEventListener('keyup', (e) => {
 // FPS Toggle Button Handler
 document.getElementById('fpsToggleButton').addEventListener('click', function () {
     const button = this;
+    const fpsMainDisplay = document.getElementById('fpsMainDisplay');
     
     if (isAnimating) {
         // Stop continuous rendering
         stopContinuousRendering();
         button.textContent = 'Start FPS Counter';
         button.classList.remove('active');
+        
+        // Keep FPS display visible but reset it
+        // if (fpsMainDisplay) {
+        //     fpsMainDisplay.style.display = 'none';
+        // }
         
         // Clear FPS display
         const fpsElement = document.getElementById('fpsDisplay');
@@ -181,6 +192,12 @@ document.getElementById('fpsToggleButton').addEventListener('click', function ()
         startContinuousRendering();
         button.textContent = 'Stop FPS Counter';
         button.classList.add('active');
+        
+        // FPS display is always visible, just start updating it
+        // if (fpsMainDisplay) {
+        //     fpsMainDisplay.style.display = 'block';
+        // }
+        
         console.log('[SUCCESS] FPS counter started');
     }
 });

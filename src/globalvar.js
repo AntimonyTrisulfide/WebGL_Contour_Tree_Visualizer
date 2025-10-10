@@ -27,9 +27,17 @@ if (!gl) {
     console.error("WebGL2 not supported");
 }
 
-// Sphere and Pipe radius and segments
-let sphereRadius = 0.025; // Default radius of the spheres
-let pipeRadius = 0.005; // Default radius of the pipes
+// Sphere and Pipe radius and segments - configurable defaults
+let sphereRadius = null; // Will be set from configuration
+let pipeRadius = null; // Will be set from configuration
+
+// Default configuration object
+const DEFAULT_CONFIG = {
+    sphereRadius: 0.3,
+    pipeRadius: 0.05,
+    sphereSegments: 16,
+    pipeSegments: 8
+};
 
 let pipeColor = [0.800, 0.800, 0.800]; // Color of the pipes
 
@@ -148,12 +156,80 @@ window.edgeId = edgeId;
 window.applySpacing = applySpacing;
 window.prevSpacing = prevSpacing;
 
-// Make radius variables globally accessible
-window.sphereRadius = sphereRadius;
-window.pipeRadius = pipeRadius;
+// Configuration management system
+const GlobalConfig = {
+    // Initialize with default or provided configuration
+    initialize: function(config = {}) {
+        // Merge provided config with defaults
+        const finalConfig = { ...DEFAULT_CONFIG, ...config };
+        
+        // Set global variables
+        sphereRadius = finalConfig.sphereRadius;
+        pipeRadius = finalConfig.pipeRadius;
+        
+        // Update window references
+        window.sphereRadius = sphereRadius;
+        window.pipeRadius = pipeRadius;
+        
+        console.log('🔧 GlobalConfig initialized:', finalConfig);
+        return finalConfig;
+    },
+    
+    // Update specific values
+    updateRadius: function(newSphereRadius, newPipeRadius) {
+        if (newSphereRadius !== undefined) {
+            sphereRadius = newSphereRadius;
+            window.sphereRadius = sphereRadius;
+        }
+        if (newPipeRadius !== undefined) {
+            pipeRadius = newPipeRadius;
+            window.pipeRadius = pipeRadius;
+        }
+        console.log('🔄 Radius updated:', { sphereRadius, pipeRadius });
+    },
+    
+    // Get current configuration
+    getCurrentConfig: function() {
+        return {
+            sphereRadius,
+            pipeRadius,
+            backgroundColor,
+            pipeColor: [...pipeColor],
+            nodeColors: { ...NODE_COLORS }
+        };
+    },
+    
+    // Initialize from HTML elements (for UI integration)
+    initializeFromHTML: function() {
+        const sphereSlider = document.getElementById('sphereRadiusSlider');
+        const pipeSlider = document.getElementById('pipeRadiusSlider');
+        
+        if (sphereSlider && pipeSlider) {
+            const config = {
+                sphereRadius: parseFloat(sphereSlider.value),
+                pipeRadius: parseFloat(pipeSlider.value)
+            };
+            return this.initialize(config);
+        } else {
+            // Fallback to defaults if no HTML elements found
+            return this.initialize();
+        }
+    }
+};
+
+// Make configuration system globally accessible
+window.GlobalConfig = GlobalConfig;
+
+// Initialize with defaults (will be overridden by HTML initialization)
+GlobalConfig.initialize();
 
 // Initialize edgeId array synchronization on page load
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize configuration from HTML elements
+    if (window.GlobalConfig) {
+        window.GlobalConfig.initializeFromHTML();
+    }
+    
     // Ensure initial synchronization
     if (typeof window.syncEdgeIdArray === 'function') {
         window.syncEdgeIdArray();

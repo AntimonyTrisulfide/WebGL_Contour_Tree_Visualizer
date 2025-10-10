@@ -49,20 +49,12 @@ class UIManager {
     }
 
     /**
-     * Update selection status display
+     * Update selection status display - DISABLED (removed from UI)
      * @param {Array} selectedEdges - Array of selected edge indices
      */
     updateSelectionStatus(selectedEdges) {
-        const statusElement = document.getElementById('selectionStatus');
-        if (statusElement) {
-            if (selectedEdges.length > 0) {
-                statusElement.textContent = `Selected edges: [${selectedEdges.join(', ')}]`;
-                statusElement.style.color = '#4CAF50';
-            } else {
-                statusElement.textContent = 'No edges selected';
-                statusElement.style.color = '#888';
-            }
-        }
+        // Selection status display removed - we now use the edge menu instead
+        return;
     }
 
     /**
@@ -180,8 +172,10 @@ class UIManager {
      * Initialize default UI elements if they don't exist
      */
     initializeDefaultUI() {
-        this.createSelectionStatusDisplay();
-        this.createClearSelectionButton();
+        // Remove the selected edges display from top left
+        // this.createSelectionStatusDisplay();
+        // Clear selection button is now in the menu, so we don't create it here
+        // this.createClearSelectionButton();
     }
 
     /**
