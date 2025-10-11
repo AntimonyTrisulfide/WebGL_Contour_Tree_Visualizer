@@ -164,41 +164,41 @@ window.addEventListener('keyup', (e) => {
 });
 
 // FPS Toggle Button Handler
-document.getElementById('fpsToggleButton').addEventListener('click', function () {
-    const button = this;
-    const fpsMainDisplay = document.getElementById('fpsMainDisplay');
+// document.getElementById('fpsToggleButton').addEventListener('click', function () {
+//     const button = this;
+//     const fpsMainDisplay = document.getElementById('fpsMainDisplay');
     
-    if (isAnimating) {
-        // Stop continuous rendering
-        stopContinuousRendering();
-        button.textContent = 'Start FPS Counter';
-        button.classList.remove('active');
+//     if (isAnimating) {
+//         // Stop continuous rendering
+//         stopContinuousRendering();
+//         button.textContent = 'Start FPS Counter';
+//         button.classList.remove('active');
         
-        // Keep FPS display visible but reset it
-        // if (fpsMainDisplay) {
-        //     fpsMainDisplay.style.display = 'none';
-        // }
+//         // Keep FPS display visible but reset it
+//         // if (fpsMainDisplay) {
+//         //     fpsMainDisplay.style.display = 'none';
+//         // }
         
-        // Clear FPS display
-        const fpsElement = document.getElementById('fpsDisplay');
-        if (fpsElement) {
-            fpsElement.textContent = 'FPS: --';
-        }
-          // Render one final frame
-        renderGraphWithFPS();
-        console.log('[INFO] FPS counter stopped');
-    } else {
-        // Start continuous rendering
-        startContinuousRendering();
-        button.textContent = 'Stop FPS Counter';
-        button.classList.add('active');
+//         // Clear FPS display
+//         const fpsElement = document.getElementById('fpsDisplay');
+//         if (fpsElement) {
+//             fpsElement.textContent = 'FPS: --';
+//         }
+//           // Render one final frame
+//         renderGraphWithFPS();
+//         console.log('[INFO] FPS counter stopped');
+//     } else {
+//         // Start continuous rendering
+//         startContinuousRendering();
+//         button.textContent = 'Stop FPS Counter';
+//         button.classList.add('active');
         
-        // FPS display is always visible, just start updating it
-        // if (fpsMainDisplay) {
-        //     fpsMainDisplay.style.display = 'block';
-        // }
+//         // FPS display is always visible, just start updating it
+//         // if (fpsMainDisplay) {
+//         //     fpsMainDisplay.style.display = 'block';
+//         // }
         
-        console.log('[SUCCESS] FPS counter started');
-    }
-});
+//         console.log('[SUCCESS] FPS counter started');
+//     }
+// });
 }

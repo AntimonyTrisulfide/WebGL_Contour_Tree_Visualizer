@@ -292,7 +292,18 @@ class SelectionManager {
         if (isCtrlPressed) {
             this.toggleEdge(edgeIndex);
         } else {
-            this.selectSingle(edgeIndex);
+            // Check if the edge is already selected and it's the only selection
+            if (this.selectedEdges.length === 1 && this.selectedEdges[0] === edgeIndex) {
+                // Deselect the edge if it's the only one selected
+                this.clearSelection();
+            } else if (this.selectedEdges.includes(edgeIndex)) {
+                // If multiple edges are selected and this edge is one of them, 
+                // make it the only selection (don't deselect)
+                this.selectSingle(edgeIndex);
+            } else {
+                // Edge is not selected, select it
+                this.selectSingle(edgeIndex);
+            }
         }
     }
 }

@@ -123,121 +123,7 @@ canvas {
     background: #f44336;
 }
 
-/* FPS Counter Styles */
-.fps-controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
 
-.fps-button {
-    background: #FF5722;
-    color: rgb(255, 255, 255);
-    padding: 8px 16px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 12px;
-    transition: background-color 0.3s;
-}
-
-.fps-button:hover {
-    background: #E64A19;
-}
-
-.fps-button.active {
-    background: #4CAF50;
-}
-
-.fps-button.active:hover {
-    background: #45a049;
-}
-
-.fps-display {
-    color: #4CAF50;
-    font-size: 14px;
-    font-weight: bold;
-    background: rgb(255, 255, 255);
-    padding: 5px 10px;
-    border-radius: 3px;
-    min-width: 60px;
-    text-align: center;
-}
-
-/* FPS Display in Main View */
-.fps-main-display {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 500;
-    background: rgba(15, 23, 42, 0.95);
-    border-radius: 8px;
-    padding: 3px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    transition: opacity 0.3s ease-in-out;
-    pointer-events: auto; /* Ensure display can capture events */
-}
-
-.fps-display-main {
-    color: #3b82f6;
-    font-size: 16px;
-    font-weight: bold;
-    background: transparent;
-    padding: 8px 12px;
-    border-radius: 5px;
-    min-width: 80px;
-    text-align: center;
-    font-family: 'Courier New', monospace;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-}
-
-.fps-toggle-overlay {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #3b82f6;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.fps-toggle-overlay:hover {
-    background: rgba(59, 130, 246, 0.3);
-    border-color: rgba(59, 130, 246, 0.6);
-}
-
-.fps-toggle-overlay.active {
-    background: rgba(59, 130, 246, 0.4);
-    border-color: #3b82f6;
-    color: #60a5fa;
-}
-
-/* Responsive adjustments for mobile */
-@media (max-width: 768px) {
-    .fps-main-display {
-        top: 10px;
-        right: 10px;
-        padding: 2px;
-    }
-    
-    .fps-display-main {
-        font-size: 14px;
-        padding: 6px 10px;
-        min-width: 70px;
-    }
-}
 
 /* Radius Controls Styles */
 .radius-controls {
@@ -747,11 +633,11 @@ canvas {
 
 /* Edge Information Panel Styles */
 .edge-info-panel {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid #673AB7;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 200;
@@ -847,11 +733,11 @@ canvas {
 
 /* Multiple Edge Information Panel Styles */
 .multiple-edge-info-panel {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    background: rgba(255, 255, 255, 0.95);
-    border: 2px solid #673AB7;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 200;
@@ -1080,17 +966,17 @@ canvas {
     }
 
     .edge-info-panel {
-        bottom: 10px;
-        left: 10px;
+        top: 10px;
         right: 10px;
+        left: 10px;
         min-width: auto;
         max-width: none;
     }
 
     .multiple-edge-info-panel {
-        bottom: 10px;
-        left: 10px;
+        top: 10px;
         right: 10px;
+        left: 10px;
         min-width: auto;
         max-width: none;
         max-height: 60vh;
@@ -1193,11 +1079,7 @@ body.sidebar-open {
     right: 0;
 }
 
-/* Hide FPS counter when sidebar is open - using body class approach */
-body:has(.settings-sidebar.open) .fps-main-display {
-    opacity: 0;
-    pointer-events: none;
-}
+
 
 .sidebar-header {
     background: #673AB7;
@@ -1420,26 +1302,15 @@ body:has(.settings-sidebar.open) .fps-main-display {
     transition: all 0.3s;
 }
 
-/* FPS Display in Menu */
-.menu-section .fps-display {
-    color: #673AB7;
-    font-size: 12px;
-    font-weight: bold;
-    background: #f8f9fa;
-    padding: 8px 12px;
-    border-radius: 3px;
-    min-width: 60px;
-    text-align: center;
-    border: 1px solid #e9ecef;
-}
+
 
 /* Instructions Panel Styles */
 .instructions-panel {
     position: fixed;
     top: 20px;
     left: 20px;
-    background: rgba(0, 0, 0, 0.9);
-    color: white;
+    background: rgba(255, 255, 255, 0.95);
+    border: 2px solid #673AB7;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     z-index: 1000;
@@ -1449,6 +1320,7 @@ body:has(.settings-sidebar.open) .fps-main-display {
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    backdrop-filter: blur(5px);
     pointer-events: auto; /* Ensure panel can capture events */
 }
 
@@ -1457,27 +1329,27 @@ body:has(.settings-sidebar.open) .fps-main-display {
     justify-content: space-between;
     align-items: center;
     padding: 12px 16px;
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 8px 8px 0 0;
+    background: #673AB7;
+    border-radius: 6px 6px 0 0;
     cursor: pointer;
     user-select: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: none;
 }
 
 .instructions-header:hover {
-    background: rgba(0, 0, 0, 0.9);
+    background: #5E35B1;
 }
 
 .instructions-title {
     font-weight: bold;
-    font-size: 14px;
-    color: #3b82f6;
+    font-size: 18px;
+    color: white;
 }
 
 .instructions-toggle {
     background: none;
     border: none;
-    color: #3b82f6;
+    color: white;
     font-size: 14px;
     cursor: pointer;
     padding: 0;
@@ -1494,8 +1366,10 @@ body:has(.settings-sidebar.open) .fps-main-display {
     line-height: 1.5;
     overflow-y: auto;
     flex: 1;
+    background: rgba(255, 255, 255, 0.98);
+    color: #333;
     scrollbar-width: thin;
-    scrollbar-color: rgba(59, 130, 246, 0.6) rgba(255, 255, 255, 0.1);
+    scrollbar-color: #673AB7 rgba(255, 255, 255, 0.1);
 }
 
 .instructions-content::-webkit-scrollbar {
@@ -1503,7 +1377,7 @@ body:has(.settings-sidebar.open) .fps-main-display {
 }
 
 .instructions-content::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.5);
     border-radius: 4px;
 }
 
@@ -1532,7 +1406,7 @@ body:has(.settings-sidebar.open) .fps-main-display {
 
 .instructions-content p {
     margin: 8px 0;
-    color: #e0e0e0;
+    color: #000000;
     font-size: 15px;
 }
 
@@ -1563,7 +1437,7 @@ body:has(.settings-sidebar.open) .fps-main-display {
     padding: 4px 8px;
     border-radius: 3px;
     font-size: 13px;
-    color: #e0e0e0;
+    color: #000000;
 }
 
 .instructions-content code {
@@ -1596,6 +1470,111 @@ body:has(.settings-sidebar.open) .fps-main-display {
 
 .instructions-content a:visited:hover {
     color: #3b82f6;
+}
+
+/* Instructions panel control styling */
+.instructions-panel .control-group {
+    margin-bottom: 18px;
+    clear: both;
+}
+
+.instructions-panel .control-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #673AB7;
+    font-size: 13px;
+    line-height: 1.2;
+}
+
+.instructions-panel .slider-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.instructions-panel .control-slider {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(59, 130, 246, 0.2);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    accent-color: #3b82f6;
+}
+
+.instructions-panel .control-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.instructions-panel .control-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.instructions-panel .slider-value {
+    min-width: 50px;
+    text-align: right;
+    font-weight: 600;
+    color: #673AB7;
+    background: rgba(103, 58, 183, 0.1);
+    padding: 3px 6px;
+    border-radius: 3px;
+    font-size: 11px;
+    border: 1px solid rgba(103, 58, 183, 0.2);
+}
+
+.instructions-panel .menu-button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.instructions-panel .menu-button.primary {
+    background: #673AB7;
+    color: white;
+}
+
+.instructions-panel .menu-button.primary:hover {
+    background: #5E35B1;
+}
+
+.instructions-panel .file-input-wrapper {
+    position: relative;
+    overflow: hidden;
+    display: block;
+    width: 100%;
+}
+
+.instructions-panel .file-input-wrapper input[type=file] {
+    position: absolute;
+    left: -9999px;
+}
+
+.instructions-panel .file-input-wrapper label {
+    display: block;
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
 /* Responsive adjustments for instructions panel */
@@ -1638,15 +1617,15 @@ body:has(.settings-sidebar.open) .fps-main-display {
 
 .section-content {
     background: #0f172a !important;
-    color: #e2e8f0 !important;
+    color: #000000 !important;
 }
 
 .control-label {
-    color: #cbd5e1 !important;
+    color: #000000 !important;
 }
 
 .slider-value {
-    color: #ffffff !important;
+    color: #000000 !important;
     background: rgba(59, 130, 246, 0.1) !important;
     border: 1px solid rgba(59, 130, 246, 0.2) !important;
 }
@@ -1716,6 +1695,147 @@ input[type="range"], input[type="file"] {
 /* Fix any remaining light/white borders */
 .menu-section .fps-display {
     border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+/* Mobile Device Warning Styles */
+.mobile-warning {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.mobile-warning.show {
+    display: flex !important;
+}
+
+.mobile-warning-content {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 40px;
+    border-radius: 16px;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(59, 130, 246, 0.4);
+    max-width: 90%;
+    width: 480px;
+    text-align: left;
+    animation: slideIn 0.4s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.mobile-warning-content h3 {
+    margin: 0 0 20px 0;
+    color: #3b82f6;
+    font-size: 24px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.mobile-warning-content p {
+    margin: 16px 0;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+.mobile-warning-content p strong {
+    color: #60a5fa;
+}
+
+.mobile-warning-content ul {
+    margin: 12px 0;
+    padding-left: 20px;
+    line-height: 1.6;
+}
+
+.mobile-warning-content li {
+    margin: 8px 0;
+    font-size: 15px;
+    color: #cbd5e1;
+}
+
+.mobile-warning-buttons {
+    display: flex;
+    margin-top: 30px;
+    justify-content: center;
+}
+
+.mobile-warning-button {
+    border: none;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-width: 120px;
+}
+
+.mobile-warning-button.secondary {
+    background: rgba(71, 85, 105, 0.6);
+    color: #cbd5e1;
+    border: 1px solid rgba(71, 85, 105, 0.4);
+}
+
+.mobile-warning-button.secondary:hover {
+    background: rgba(71, 85, 105, 0.8);
+    border-color: rgba(71, 85, 105, 0.6);
+    color: #e2e8f0;
+    transform: translateY(-1px);
+}
+
+/* Show warning on mobile devices by default */
+@media (max-width: 768px), (hover: none) {
+    .mobile-warning {
+        display: flex;
+    }
+    
+    /* Hide main content on mobile until warning is dismissed */
+    #canvas,
+    #instructionsPanel,
+    #edgeInfoPanel {
+        display: none;
+    }
+}
+
+/* Responsive adjustments for mobile warning */
+@media (max-width: 480px) {
+    .mobile-warning-content {
+        padding: 30px 20px;
+        width: 95%;
+        border-radius: 12px;
+    }
+    
+    .mobile-warning-content h3 {
+        font-size: 20px;
+    }
+    
+    .mobile-warning-content p {
+        font-size: 14px;
+    }
+    
+    .mobile-warning-button {
+        min-width: 100px;
+    }
 }
 
 /* Comprehensive white border fixes */
@@ -1805,7 +1925,7 @@ button:focus {
 
 .settings-sidebar .menu-button.secondary {
     background: rgba(71, 85, 105, 0.6) !important;
-    color: #cbd5e1 !important;
+    color: #000000 !important;
 }
 
 /* Remove animation from collapsible menu buttons */

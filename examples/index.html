@@ -5,120 +5,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Custom Parser Example - Contour Tree Visualizer</title>
     <link rel="stylesheet" href="../style.css">
-    <script src="../lib/gl-matrix-min.js"></script>
+    
+    <!-- Mobile Detection Script - Must be first -->
     <script>
-        // Make gl-matrix components available globally
-        window.mat4 = glMatrix.mat4;
-        window.vec3 = glMatrix.vec3;
-        window.vec4 = glMatrix.vec4;
-        window.mat3 = glMatrix.mat3;
+        // Immediate mobile device detection
+        function isMobileDevice() {
+            const userAgent = navigator.userAgent.toLowerCase();
+            const mobileKeywords = ['android', 'iphone', 'ipad', 'ipod', 'blackberry', 'windows phone', 'mobile'];
+            
+            // Check user agent
+            const isMobileUserAgent = mobileKeywords.some(keyword => userAgent.includes(keyword));
+            
+            // Check screen size
+            const isSmallScreen = window.innerWidth <= 768 || window.innerHeight <= 768;
+            
+            // Check touch capability
+            const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+            
+            // Check orientation (mobile devices often support orientation change)
+            const supportsOrientation = typeof window.orientation !== 'undefined';
+            
+            return isMobileUserAgent || (isSmallScreen && isTouchDevice) || supportsOrientation;
+        }
+        
+        // Set global flag for mobile device
+        window.isMobile = isMobileDevice();
+        
+        // If mobile device, stop loading heavy scripts
+        if (window.isMobile) {
+            console.log('Mobile device detected - preventing heavy script loading');
+            window.skipHeavyScripts = true;
+        }
     </script>
-    <!-- Core visualizer files (parser-independent) -->
-    <script src="../src/globalvar.js" defer></script>
-    <script src="../src/dataHandler.js"></script>
-    <script src="../src/universalParser.js"></script>
-    <script src="../src/primitives.js"></script>
-    <script src="../src/selectionManager.js"></script>
-    <script src="../src/uiManager.js"></script>
-    <script src="../src/input.js" defer></script>
-    <script src="../src/camera.js"></script>
-    <script src="../src/initialize.js"></script>
-    <script src="../src/renderer.js"></script>
-    <script src="../src/mousePicking.js"></script>
-    <script src="../src/edgeInfo.js"></script>
-    <script src="../src/multipleEdgeInfo.js"></script>
-    <script src="../src/visualizerAPI.js"></script>
-    <script src="../src/debug.js"></script>
+    
+    <!-- Load heavy scripts only if not mobile or dismissed -->
+    <script>
+        if (!window.skipHeavyScripts) {
+            document.write('<script src="../lib/gl-matrix-min.js"><\/script>');
+            document.write('<script>window.mat4 = glMatrix.mat4; window.vec3 = glMatrix.vec3; window.vec4 = glMatrix.vec4; window.mat3 = glMatrix.mat3;<\/script>');
+            document.write('<script src="../src/globalvar.js" defer><\/script>');
+            document.write('<script src="../src/dataHandler.js"><\/script>');
+            document.write('<script src="../src/universalParser.js"><\/script>');
+            document.write('<script src="../src/primitives.js"><\/script>');
+            document.write('<script src="../src/selectionManager.js"><\/script>');
+            document.write('<script src="../src/uiManager.js"><\/script>');
+            document.write('<script src="../src/input.js" defer><\/script>');
+            document.write('<script src="../src/camera.js"><\/script>');
+            document.write('<script src="../src/initialize.js"><\/script>');
+            document.write('<script src="../src/renderer.js"><\/script>');
+            document.write('<script src="../src/mousePicking.js"><\/script>');
+            document.write('<script src="../src/edgeInfo.js"><\/script>');
+            document.write('<script src="../src/multipleEdgeInfo.js"><\/script>');
+            document.write('<script src="../src/visualizerAPI.js"><\/script>');
+            document.write('<script src="../src/debug.js"><\/script>');
+        }
+    </script>
 </head>
 <body>
-    <!-- Menu Toggle Button -->
-    <button class="menu-toggle" id="menuToggle">☰</button>
 
-    <!-- Collapsible Settings Sidebar -->
-    <div class="settings-sidebar" id="settingsSidebar">
-        <div class="sidebar-header">
-            <h2>Controls</h2>
-            <button class="sidebar-close" id="sidebarClose">×</button>
-        </div>
-        
-        <div class="sidebar-content">
-            <!-- File Operations Section -->
-            <div class="menu-section">
-                <div class="section-header" id="fileOpsHeader">File Operations</div>
-                <div class="section-content" id="fileOpsContent">
-                    <div class="control-group">
-                        <div class="file-input-wrapper">
-                            <input type="file" id="fileInput" accept=".off" style="display: none;">
-                            <label for="fileInput" class="menu-button primary">Load OFF File</label>
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <button id="generateSample" class="menu-button primary" style="width: 100%;">Load Sample Tree (sample.off)</button>
-                    </div>
-                </div>
-            </div>
 
-            <!-- View Controls Section - Removed clear selection button -->
-            <!-- <div class="menu-section">
-                <div class="section-header" id="viewControlsHeader">View Controls</div>
-                <div class="section-content" id="viewControlsContent">
-                    <div class="control-group">
-                        <button id="clearSelection" class="menu-button secondary" style="width: 100%;">Clear Selection</button>
-                    </div>
-                </div>
-            </div> -->
-
-            <!-- Rendering Settings Section -->
-            <div class="menu-section">
-                <div class="section-header" id="renderingHeader">Rendering Settings</div>
-                <div class="section-content" id="renderingContent">
-                    <div class="control-group">
-                        <label class="control-label">Sphere Radius</label>
-                        <div class="slider-container">
-                            <input type="range" id="sphereRadiusSlider" class="control-slider" min="0.01" max="0.5" step="0.01" value="0.3">
-                            <span class="slider-value" id="sphereRadiusValue">0.300</span>
-                        </div>
-                    </div>
-                    <div class="control-group">
-                        <label class="control-label">Pipe Radius</label>
-                        <div class="slider-container">
-                            <input type="range" id="pipeRadiusSlider" class="control-slider" min="0.001" max="0.1" step="0.001" value="0.05">
-                            <span class="slider-value" id="pipeRadiusValue">0.050</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- FPS Controls moved to overlay button -->
-            <!-- <div class="menu-section">
-                <div class="section-header" id="fpsHeader">Performance</div>
-                <div class="section-content" id="fpsContent">
-                    <div class="control-group">
-                        <button id="fpsToggleButton" class="menu-button secondary" style="width: 100%;">Start FPS Counter</button>
-                    </div>
-                </div>
-            </div> -->
-        </div>
-    </div>
-
-    <!-- Instructions Panel -->
+    <!-- Information Panel with Integrated Controls -->
     <div id="instructionsPanel" class="instructions-panel collapsed">
         <div class="instructions-header" id="instructionsHeader">
-            <span class="instructions-title">Contour Tree Visualizer - Instructions & Keybinds</span>
+            <span class="instructions-title">Manav Marmat's Contour Tree Visualizer - Information & Controls</span>
             <button class="instructions-toggle" id="instructionsToggle">▼</button>
         </div>
         <div class="instructions-content" id="instructionsContent">
             <h3>WebGL Contour Tree Visualizer</h3>
-            <p>Click the <strong>☰ menu button</strong> on the right to access all controls. This visualizer automatically loads the sample contour tree from <code>sample.off</code> file.</p>
             
+            <!-- Controls Section -->
             <div class="info-section">
-                <h4>Features</h4>
-                <ul>
-                    <li><strong>Auto-Load:</strong> Sample tree loads automatically on page start</li>
-                    <li><strong>Menu Access:</strong> All controls organized in collapsible sections</li>
-                    <li><strong>Supported Format:</strong> OFF files only</li>
-                    <li><strong>Interactive Controls:</strong> File loading, rendering settings, view controls</li>
-                </ul>
+                <h4>File Operations</h4>
+                <div class="control-group">
+                    <div class="file-input-wrapper">
+                        <input type="file" id="fileInput" accept=".off" style="display: none;">
+                        <label for="fileInput" class="menu-button primary">Load OFF File</label>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <button id="generateSample" class="menu-button primary" style="width: 100%;">Load Sample Tree (sample.off)</button>
+                </div>
+            </div>
+
+            <!-- Rendering Settings Section -->
+            <div class="info-section">
+                <h4>Rendering Settings</h4>
+                <div class="control-group">
+                    <label class="control-label">Sphere Radius</label>
+                    <div class="slider-container">
+                        <input type="range" id="sphereRadiusSlider" class="control-slider" min="0.01" max="0.5" step="0.01" value="0.3">
+                        <span class="slider-value" id="sphereRadiusValue">0.300</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">Pipe Radius</label>
+                    <div class="slider-container">
+                        <input type="range" id="pipeRadiusSlider" class="control-slider" min="0.001" max="0.1" step="0.001" value="0.05">
+                        <span class="slider-value" id="pipeRadiusValue">0.050</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- About the Project -->
+             <div class="info-section">
+                <h4>About the Project</h4>
+                <p>This tool is used for visualization of topological data using contour trees. This tool would provide aid in analysing scalar functions, with the selection of individual branches and simplification.  This is a precursor to have volumetric rendering such that a volume can be segmented using the help of a contour tree. This is mostly used in cases where topological features matter more than geometry, as this helps understand characteristics like, persistence of features and summarization of large fields.</p>
+                <p>I made this project as a part of my research internship at Visualization and Graphics Lab, Computer Science and Automation Department, IISc Bengaluru under the guidance of <a href="https://www.csa.iisc.ac.in/~vijayn/" target="_blank" rel="noopener noreferrer">Prof. Vijay Natarajan</a></p>    
+             </div>
+
+            <div class="info-section">
+                <h4>Mouse Controls</h4>
+                <p>Use mouse to rotate view, click to select edges, hold ctrl to select multiple edges</p>
             </div>
 
             <div class="info-section">
@@ -134,18 +131,6 @@
                     <div class="control-item"><strong>Ctrl:</strong> Select multiple</div>
                 </div>
             </div>
-
-            <div class="info-section">
-                <h4>Mouse Controls</h4>
-                <p>Use mouse to rotate view, click to select edges, hold ctrl to select multiple edges</p>
-            </div>
-
-            <!-- paragraph section describiing the project -->
-             <div class="info-section">
-                <h4>About the Project</h4>
-                <p>This Contour Tree Visualizer is a WebGL-based tool for visualizing contour trees from OFF files. It features an intuitive interface with collapsible menus, keyboard shortcuts, and interactive controls for loading files and adjusting rendering settings. The visualizer is designed to provide a seamless experience for exploring complex tree structures in 3D.</p>
-                <p>I made this project as a part of my 8 week long internship at Visualization and Graphics Lab, Computer Science and Automation Department, IISc Bengaluru under the guidance of Prof. Vijay Natarajan</p>    
-             </div>
 
             <!-- Add link to my portfolio website and my name -->
             <div class="info-section">
@@ -188,10 +173,25 @@
         </div>
     </div>
 
-    <!-- FPS Display in Main View with adjacent control button -->
-    <div id="fpsMainDisplay" class="fps-main-display">
-        <div id="fpsDisplay" class="fps-display-main">FPS: --</div>
-        <button id="fpsToggleButtonOverlay" class="fps-toggle-overlay">⏵</button>
+
+
+    <!-- Mobile Device Warning -->
+    <div id="mobileWarning" class="mobile-warning">
+        <div class="mobile-warning-content">
+            <h3>📱 Mobile Device Detected</h3>
+            <p>This <strong>WebGL Contour Tree Visualizer</strong> is optimized for desktop devices.</p>
+            <p><strong>Mobile browsers may have:</strong></p>
+            <ul>
+                <li>Limited WebGL support</li>
+                <li>Poor performance with 3D rendering</li>
+                <li>Touch controls that don't work as expected</li>
+                <li>Memory limitations with large datasets</li>
+            </ul>
+            <p><strong>For the best experience, please use a desktop computer.</strong></p>
+            <div class="mobile-warning-buttons">
+                <button id="closeMobileWarning" class="mobile-warning-button secondary">Go Back</button>
+            </div>
+        </div>
     </div>
 
     <canvas id="canvas"></canvas>
@@ -207,104 +207,7 @@
             updateViewport();
         }
 
-        // Menu System Functions
-        function initializeMenuSystem() {
-            const menuToggle = document.getElementById('menuToggle');
-            const settingsSidebar = document.getElementById('settingsSidebar');
-            const sidebarClose = document.getElementById('sidebarClose');
-            
-            // Toggle menu open/close
-            function toggleMenu() {
-                const isOpen = settingsSidebar.classList.contains('open');
-                if (isOpen) {
-                    settingsSidebar.classList.remove('open');
-                    menuToggle.classList.remove('open');
-                } else {
-                    settingsSidebar.classList.add('open');
-                    menuToggle.classList.add('open');
-                }
-            }
-            
-            // Event listeners for menu toggle
-            if (menuToggle) {
-                menuToggle.addEventListener('click', toggleMenu);
-            }
-            if (sidebarClose) {
-                sidebarClose.addEventListener('click', toggleMenu);
-            }
-            
-            // Close menu when clicking outside
-            document.addEventListener('click', function(event) {
-                if (!settingsSidebar.contains(event.target) && 
-                    !menuToggle.contains(event.target) && 
-                    settingsSidebar.classList.contains('open')) {
-                    toggleMenu();
-                }
-            });
-            
-            // Prevent menu interactions from affecting camera controls
-            if (settingsSidebar) {
-                settingsSidebar.addEventListener('wheel', function(event) {
-                    event.stopPropagation();
-                }, { passive: false });
-                
-                settingsSidebar.addEventListener('mousedown', function(event) {
-                    event.stopPropagation();
-                });
-                
-                settingsSidebar.addEventListener('mousemove', function(event) {
-                    event.stopPropagation();
-                });
-                
-                settingsSidebar.addEventListener('mouseup', function(event) {
-                    event.stopPropagation();
-                });
-            }
-            
-            // Keyboard shortcut to toggle menu (M key)
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'm' || event.key === 'M') {
-                    // Only toggle if not typing in an input field
-                    if (!event.target.matches('input, textarea, select')) {
-                        event.preventDefault();
-                        toggleMenu();
-                    }
-                }
-            });
-            
-            // Initialize collapsible sections
-            initializeCollapsibleSections();
-            
-            // Initialize instructions panel
-            initializeInstructionsPanel();
-        }
-        
-        function initializeCollapsibleSections() {
-            const sectionHeaders = document.querySelectorAll('.section-header');
-            
-            sectionHeaders.forEach(header => {
-                const contentId = header.id.replace('Header', 'Content');
-                const content = document.getElementById(contentId);
-                
-                if (content) {
-                    // Start with all sections open
-                    content.classList.remove('collapsed');
-                    header.classList.remove('collapsed');
-                    
-                    header.addEventListener('click', function() {
-                        const isCollapsed = content.classList.contains('collapsed');
-                        
-                        if (isCollapsed) {
-                            content.classList.remove('collapsed');
-                            header.classList.remove('collapsed');
-                        } else {
-                            content.classList.add('collapsed');
-                            header.classList.add('collapsed');
-                        }
-                    });
-                }
-            });
-        }
+
 
         function initializeInstructionsPanel() {
             const instructionsHeader = document.getElementById('instructionsHeader');
@@ -312,23 +215,36 @@
             const instructionsToggle = document.getElementById('instructionsToggle');
             const instructionsPanel = document.getElementById('instructionsPanel');
             
+            function toggleInstructionsPanel() {
+                const isCollapsed = instructionsContent.style.display === 'none';
+                
+                if (isCollapsed) {
+                    instructionsContent.style.display = 'block';
+                    instructionsPanel.classList.remove('collapsed');
+                    instructionsToggle.textContent = '▼';
+                } else {
+                    instructionsContent.style.display = 'none';
+                    instructionsPanel.classList.add('collapsed');
+                    instructionsToggle.textContent = '▶';
+                }
+            }
+            
             if (instructionsHeader && instructionsContent && instructionsToggle) {
                 // Start collapsed
                 instructionsContent.style.display = 'none';
                 instructionsPanel.classList.add('collapsed');
                 instructionsToggle.textContent = '▶';
                 
-                instructionsHeader.addEventListener('click', function() {
-                    const isCollapsed = instructionsContent.style.display === 'none';
-                    
-                    if (isCollapsed) {
-                        instructionsContent.style.display = 'block';
-                        instructionsPanel.classList.remove('collapsed');
-                        instructionsToggle.textContent = '▼';
-                    } else {
-                        instructionsContent.style.display = 'none';
-                        instructionsPanel.classList.add('collapsed');
-                        instructionsToggle.textContent = '▶';
+                instructionsHeader.addEventListener('click', toggleInstructionsPanel);
+                
+                // Keyboard shortcut to toggle instructions panel (M key)
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'm' || event.key === 'M') {
+                        // Only toggle if not typing in an input field
+                        if (!event.target.matches('input, textarea, select')) {
+                            event.preventDefault();
+                            toggleInstructionsPanel();
+                        }
                     }
                 });
             }
@@ -336,6 +252,10 @@
 
         // Sample Tree Generator - Load from sample.off file
         function generateSampleTree() {
+            if (window.skipHeavyScripts) {
+                console.log('⚠️ Cannot generate sample tree on mobile device');
+                return;
+            }
             console.log('📝 Generating sample tree data from sample.off...');
             
             // Load the sample.off file automatically
@@ -344,6 +264,10 @@
 
         // Function to load sample.off file automatically
         async function loadSampleOffFile() {
+            if (window.skipHeavyScripts) {
+                console.log('⚠️ Cannot load sample.off file on mobile device');
+                return;
+            }
             try {
                 console.log('🔄 Loading sample.off file...');
                 
@@ -357,11 +281,17 @@
                 console.log('✅ Successfully loaded sample.off file');
                 
                 // Parse the OFF data using the universal parser
-                const treeData = parseFile('sample.off', offData);
-                console.log('✅ Successfully parsed sample.off data:', treeData);
-                
-                // Visualize the loaded data
-                visualizeTreeData(treeData, 'Sample OFF File (sample.off)');
+                if (typeof parseFile === 'function') {
+                    const treeData = parseFile('sample.off', offData);
+                    console.log('✅ Successfully parsed sample.off data:', treeData);
+                    
+                    // Visualize the loaded data
+                    if (typeof visualizeTreeData === 'function') {
+                        visualizeTreeData(treeData, 'Sample OFF File (sample.off)');
+                    }
+                } else {
+                    console.error('❌ parseFile function not available');
+                }
                 
             } catch (error) {
                 console.error('❌ Error loading sample.off file:', error);
@@ -371,6 +301,10 @@
 
         // Auto-load sample.off file when page loads
         async function autoLoadSampleOnStart() {
+            if (window.skipHeavyScripts) {
+                console.log('⚠️ Skipping auto-loading sample.off file on mobile device');
+                return;
+            }
             try {
                 console.log('🚀 Auto-loading sample.off file on page start...');
                 await loadSampleOffFile();
@@ -518,27 +452,63 @@
             }
         }
 
+        // Mobile device warning handler
+        function initializeMobileWarning() {
+            const mobileWarning = document.getElementById('mobileWarning');
+            const closeButton = document.getElementById('closeMobileWarning');
+            
+            // Show warning if mobile device detected
+            if (window.isMobile) {
+                console.log('Mobile device detected, showing warning');
+                mobileWarning.classList.add('show');
+                
+                // Hide other content while warning is shown
+                const canvas = document.getElementById('canvas');
+                const instructionsPanel = document.getElementById('instructionsPanel');
+                const edgeInfoPanel = document.getElementById('edgeInfoPanel');
+                
+                if (canvas) canvas.style.display = 'none';
+                if (instructionsPanel) instructionsPanel.style.display = 'none';
+                if (edgeInfoPanel) edgeInfoPanel.style.display = 'none';
+            }
+            
+            // Handle go back button
+            if (closeButton) {
+                closeButton.addEventListener('click', function() {
+                    console.log('Go back button clicked');
+                    // Navigate back or close tab
+                    if (window.history.length > 1) {
+                        window.history.back();
+                    } else {
+                        window.close();
+                    }
+                });
+            }
+        }
+
         // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize menu system first
-            initializeMenuSystem();
+            // Initialize mobile warning first
+            initializeMobileWarning();
             
-            // Add event handlers to prevent camera movement when interacting with menu elements
+            // Only initialize heavy functionality if scripts are loaded (not on mobile)
+            if (!window.skipHeavyScripts) {
+                // Initialize instructions panel
+                initializeInstructionsPanel();
+            
+            // Add event handlers to prevent camera movement when interacting with UI elements
             function stopEventPropagation(event) {
                 event.stopPropagation();
             }
             
-            // Get menu elements and add event listeners to prevent camera control interference
-            const menuElements = [
-                'settingsSidebar',
-                'menuToggle', 
+            // Get UI elements and add event listeners to prevent camera control interference
+            const uiElements = [
                 'instructionsPanel',
                 'edgeInfoPanel',
-                'multipleEdgeInfoPanel',
-                'fpsMainDisplay'
+                'multipleEdgeInfoPanel'
             ];
             
-            menuElements.forEach(elementId => {
+            uiElements.forEach(elementId => {
                 const element = document.getElementById(elementId);
                 if (element) {
                     element.addEventListener('wheel', stopEventPropagation, { passive: false });
@@ -587,90 +557,66 @@
                 subtree: true
             });
             
-            // Initialize slider values and display
-            const sphereSlider = document.getElementById('sphereRadiusSlider');
-            const pipeSlider = document.getElementById('pipeRadiusSlider');
-            const sphereValueDisplay = document.getElementById('sphereRadiusValue');
-            const pipeValueDisplay = document.getElementById('pipeRadiusValue');
-            
-            // Initialize configuration from HTML slider values
-            if (window.GlobalConfig) {
-                const config = window.GlobalConfig.initializeFromHTML();
-                console.log('✅ Configuration initialized from HTML:', config);
-            }
-            
-            // Get the current values (now properly initialized)
-            const initialSphereRadius = parseFloat(sphereSlider.value);
-            const initialPipeRadius = parseFloat(pipeSlider.value);
-            
-            // Update displays to show current values
-            sphereValueDisplay.textContent = initialSphereRadius.toFixed(3);
-            pipeValueDisplay.textContent = initialPipeRadius.toFixed(3);
-            
-            console.log('🎛️ Initial slider values:', {
-                sphere: initialSphereRadius,
-                pipe: initialPipeRadius
-            });
-
-            // Auto-load sample.off file after a short delay to ensure all systems are initialized
-            setTimeout(() => {
-                autoLoadSampleOnStart();
-            }, 500);
-            
-            // Set up universal file input
-            setupUniversalFileInput('universalInput', 
-                function(treeData, filename) {
-                    // Success callback
-                    const fileType = filename.substring(filename.lastIndexOf('.'));
-                    visualizeTreeData(treeData, `${fileType.toUpperCase()} File (${filename})`);
-                },
-                function(error, filename) {
-                    // Error callback
-                    alert(`Error parsing ${filename}: ${error.message}`);
+                // Initialize slider values and display
+                const sphereSlider = document.getElementById('sphereRadiusSlider');
+                const pipeSlider = document.getElementById('pipeRadiusSlider');
+                const sphereValueDisplay = document.getElementById('sphereRadiusValue');
+                const pipeValueDisplay = document.getElementById('pipeRadiusValue');
+                
+                if (sphereSlider && pipeSlider && sphereValueDisplay && pipeValueDisplay) {
+                    // Initialize configuration from HTML slider values
+                    if (window.GlobalConfig) {
+                        const config = window.GlobalConfig.initializeFromHTML();
+                        console.log('✅ Configuration initialized from HTML:', config);
+                    }
+                    
+                    // Get the current values (now properly initialized)
+                    const initialSphereRadius = parseFloat(sphereSlider.value);
+                    const initialPipeRadius = parseFloat(pipeSlider.value);
+                    
+                    // Update displays to show current values
+                    sphereValueDisplay.textContent = initialSphereRadius.toFixed(3);
+                    pipeValueDisplay.textContent = initialPipeRadius.toFixed(3);
+                    
+                    console.log('🎛️ Initial slider values:', {
+                        sphere: initialSphereRadius,
+                        pipe: initialPipeRadius
+                    });
                 }
-            );
 
-            // Generate sample button - now loads from sample.off file
-            document.getElementById('generateSample').addEventListener('click', function() {
-                generateSampleTree(); // This now loads from sample.off file
-            });
+                // Auto-load sample.off file after a short delay to ensure all systems are initialized
+                setTimeout(() => {
+                    autoLoadSampleOnStart();
+                }, 500);
+                
+                // Set up universal file input
+                if (typeof setupUniversalFileInput === 'function') {
+                    setupUniversalFileInput('universalInput', 
+                        function(treeData, filename) {
+                            // Success callback
+                            const fileType = filename.substring(filename.lastIndexOf('.'));
+                            visualizeTreeData(treeData, `${fileType.toUpperCase()} File (${filename})`);
+                        },
+                        function(error, filename) {
+                            // Error callback
+                            alert(`Error parsing ${filename}: ${error.message}`);
+                        }
+                    );
+                }
+
+                // Generate sample button - now loads from sample.off file
+                const generateSampleBtn = document.getElementById('generateSample');
+                if (generateSampleBtn) {
+                    generateSampleBtn.addEventListener('click', function() {
+                        if (typeof generateSampleTree === 'function') {
+                            generateSampleTree(); // This now loads from sample.off file
+                        }
+                    });
+                }
 
             // Clear selection button - removed from menu
 
-            // FPS toggle button overlay handler
-            const fpsToggleOverlay = document.getElementById('fpsToggleButtonOverlay');
-            if (fpsToggleOverlay) {
-                let fpsEnabled = false;
-                fpsToggleOverlay.addEventListener('click', function() {
-                    fpsEnabled = !fpsEnabled;
-                    
-                    if (fpsEnabled) {
-                        // Start FPS counter
-                        this.textContent = '⏸';
-                        this.classList.add('active');
-                        
-                        // Start continuous rendering for FPS
-                        if (typeof startContinuousRendering === 'function') {
-                            startContinuousRendering();
-                        }
-                    } else {
-                        // Stop FPS counter
-                        this.textContent = '⏵';
-                        this.classList.remove('active');
-                        
-                        // Stop continuous rendering
-                        if (typeof stopContinuousRendering === 'function') {
-                            stopContinuousRendering();
-                        }
-                        
-                        // Reset FPS display
-                        const fpsElement = document.getElementById('fpsDisplay');
-                        if (fpsElement) {
-                            fpsElement.textContent = 'FPS: --';
-                        }
-                    }
-                });
-            }
+
 
 
 
@@ -718,17 +664,19 @@
                 }
             }
 
-            // Throttled update function for sliders
-            let updateTimeout;
-            function throttledRadiusUpdate(radiusType, newValue) {
-                clearTimeout(updateTimeout);
-                updateTimeout = setTimeout(() => {
-                    updateRadius(radiusType, newValue);
-                }, 150); // 150ms delay to prevent rapid updates
-            }
+                // Throttled update function for sliders
+                let updateTimeout;
+                function throttledRadiusUpdate(radiusType, newValue) {
+                    clearTimeout(updateTimeout);
+                    updateTimeout = setTimeout(() => {
+                        updateRadius(radiusType, newValue);
+                    }, 150); // 150ms delay to prevent rapid updates
+                }
 
-            // Sphere radius slider
-            document.getElementById('sphereRadiusSlider').addEventListener('input', function() {
+                // Sphere radius slider
+                const sphereSliderElement = document.getElementById('sphereRadiusSlider');
+                if (sphereSliderElement) {
+                    sphereSliderElement.addEventListener('input', function() {
                 const newRadius = parseFloat(this.value);
                 document.getElementById('sphereRadiusValue').textContent = newRadius.toFixed(3);
                 
@@ -739,12 +687,15 @@
                     window.sphereRadius = newRadius;
                 }
                 
-                console.log('🔄 Sphere radius updated:', newRadius, 'Global:', window.sphereRadius);
-                throttledRadiusUpdate('Sphere', newRadius);
-            });
+                        console.log('🔄 Sphere radius updated:', newRadius, 'Global:', window.sphereRadius);
+                        throttledRadiusUpdate('Sphere', newRadius);
+                    });
+                }
 
-            // Pipe radius slider
-            document.getElementById('pipeRadiusSlider').addEventListener('input', function() {
+                // Pipe radius slider
+                const pipeSliderElement = document.getElementById('pipeRadiusSlider');
+                if (pipeSliderElement) {
+                    pipeSliderElement.addEventListener('input', function() {
                 const newRadius = parseFloat(this.value);
                 document.getElementById('pipeRadiusValue').textContent = newRadius.toFixed(3);
                 
@@ -755,31 +706,40 @@
                     window.pipeRadius = newRadius;
                 }
                 
-                console.log('🔄 Pipe radius updated:', newRadius, 'Global:', window.pipeRadius);
-                throttledRadiusUpdate('Pipe', newRadius);
-            });
+                        console.log('🔄 Pipe radius updated:', newRadius, 'Global:', window.pipeRadius);
+                        throttledRadiusUpdate('Pipe', newRadius);
+                    });
+                }
 
-            // Add immediate update on slider mouseup for better responsiveness
-            document.getElementById('sphereRadiusSlider').addEventListener('mouseup', function() {
-                console.log('🔄 Sphere radius mouseup - forcing immediate update');
-                const newRadius = parseFloat(this.value);
-                clearTimeout(updateTimeout); // Cancel any pending throttled updates
-                updateRadius('Sphere', newRadius);
-            });
+                // Add immediate update on slider mouseup for better responsiveness
+                if (sphereSliderElement) {
+                    sphereSliderElement.addEventListener('mouseup', function() {
+                        console.log('🔄 Sphere radius mouseup - forcing immediate update');
+                        const newRadius = parseFloat(this.value);
+                        clearTimeout(updateTimeout); // Cancel any pending throttled updates
+                        if (typeof updateRadius === 'function') {
+                            updateRadius('Sphere', newRadius);
+                        }
+                    });
+                }
 
-            document.getElementById('pipeRadiusSlider').addEventListener('mouseup', function() {
-                console.log('🔄 Pipe radius mouseup - forcing immediate update');
-                const newRadius = parseFloat(this.value);
-                clearTimeout(updateTimeout); // Cancel any pending throttled updates
-                updateRadius('Pipe', newRadius);
-            });
+                if (pipeSliderElement) {
+                    pipeSliderElement.addEventListener('mouseup', function() {
+                        console.log('🔄 Pipe radius mouseup - forcing immediate update');
+                        const newRadius = parseFloat(this.value);
+                        clearTimeout(updateTimeout); // Cancel any pending throttled updates
+                        if (typeof updateRadius === 'function') {
+                            updateRadius('Pipe', newRadius);
+                        }
+                    });
+                }
 
-            // Initialize global variables needed by the system
-            window.offData = ''; // Empty string to prevent undefined errors
-            window.currentFileName = 'universal-parser-example';
-            
-            // Set up canvas resize handler
-            window.addEventListener('resize', function() {
+                // Initialize global variables needed by the system
+                window.offData = ''; // Empty string to prevent undefined errors
+                window.currentFileName = 'universal-parser-example';
+                
+                // Set up canvas resize handler
+                window.addEventListener('resize', function() {
                 if (typeof handleCanvasResize === 'function') {
                     handleCanvasResize();
                 } else {
@@ -800,9 +760,21 @@
                             renderGraph();
                         }
                     }
+                    }
+                });
+            } // End of if (!window.skipHeavyScripts) block
+        });
+        
+        // Immediate mobile warning display
+        if (window.isMobile) {
+            document.addEventListener('DOMContentLoaded', function() {
+                const warning = document.getElementById('mobileWarning');
+                if (warning) {
+                    warning.classList.add('show');
+                    console.log('Mobile warning shown immediately');
                 }
             });
-        });
+        }
     </script>
 </body>
 </html>
