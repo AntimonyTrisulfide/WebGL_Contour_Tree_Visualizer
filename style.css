@@ -163,7 +163,7 @@ canvas {
 .slider-control input[type="range"]::-webkit-slider-thumb {
     width: 15px;
     height: 15px;
-    background: #4CAF50;
+    background: #000000;
     border-radius: 50%;
     cursor: pointer;
     -webkit-appearance: none;
@@ -173,7 +173,7 @@ canvas {
 .slider-control input[type="range"]::-moz-range-thumb {
     width: 15px;
     height: 15px;
-    background: #4CAF50;
+    background: #000000;
     border-radius: 50%;
     cursor: pointer;
     border: none;
@@ -1631,7 +1631,7 @@ body.sidebar-open {
 }
 
 .control-slider {
-    accent-color: #3b82f6 !important;
+    accent-color: #000000 !important;
 }
 
 /* Edge info panel colors */
@@ -1964,7 +1964,7 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-track {
-    background: rgba(59, 130, 246, 0.2) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
     border: none !important;
 }
 
@@ -1974,7 +1974,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 input[type="range"]::-moz-range-track {
-    background: rgba(59, 130, 246, 0.2) !important;
+    background: rgba(0, 0, 0, 0.2) !important;
     border: none !important;
 }
 
